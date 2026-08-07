@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SL YouTube Sync TV</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        #player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; background: rgba(0,0,0,0.9); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-family: Arial, sans-serif; text-align: center; }
+        h2 { margin: 0 0 10px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay" onclick="activatePlayer()">
+        <h2>Haz clic para activar la TV</h2>
+        <p>Sincronización en tiempo real con Second Life</p>
+    </div>
+    
+    <div id="player"></div>
+
+    <!-- Firebase y YouTube APIs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script>
+        // CONFIGURA TU FIREBASE AQUÍ
+        const firebaseConfig = {
+            databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const dbRef = firebase.database().ref('tv');
+
+        var player;
+        var isReady = false;
+        var currentVideoID = "";
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: 'L_LUpnjgPso',
+                playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'enablejsapi': 1 },
+                events: { 'onReady': function() { isReady = true; player.mute(); player.playVideo(); listenFirebase(); } }
+            });
+        }
+
+        function activatePlayer() {
+            document.getElementById('overlay').style.display = 'none';
+            if (player) { player.unMute(); player.setVolume(100); }
+        }
+
+        // Escucha cambios en tiempo real desde la nube sin recargar la página
+        function listenFirebase() {
+            dbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data || !isReady) return;
+
+                const serverTime = Math.floor(Date.now() / 1000);
+                const targetTime = serverTime - data.startTime;
+
+                // Si cambió el video
+                if (data.videoId !== currentVideoID) {
+                    currentVideoID = data.videoId;
+                    player.loadVideoById(currentVideoID, targetTime);
+                    return;
+                }
+
+                // Si está pausado
+                if (data.paused) {
+                    player.pauseVideo();
+                    return;
+                } else {
+                    player.playVideo();
+                }
+
+                // Corrección de deriva (si hay más de 2 segundos de desfase)
+                let actualTime = player.getCurrentTime();
+                if (Math.abs(actualTime - targetTime) > 2.0) {
+                    player.seekTo(targetTime, true);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
