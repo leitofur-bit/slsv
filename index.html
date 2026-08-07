@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>SL YouTube Sync TV</title>
-    <!-- Importamos una tipografía moderna -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -14,6 +13,7 @@
             width: 100vw; 
             height: 100vh; 
             font-family: 'Poppins', sans-serif; 
+            cursor: default;
         }
         
         #player { 
@@ -33,14 +33,14 @@
             left: 0; 
         }
         
-        /* Panel de control con diseño flotante moderno (Glassmorphism) */
+        /* Panel de control con efecto auto-ocultable */
         #controls { 
             position: absolute; 
             bottom: 25px; 
             left: 50%; 
             transform: translateX(-50%); 
             z-index: 10; 
-            background: rgba(18, 18, 20, 0.75); 
+            background: rgba(18, 18, 20, 0.85); 
             backdrop-filter: blur(12px); 
             -webkit-backdrop-filter: blur(12px);
             padding: 12px 20px; 
@@ -50,12 +50,19 @@
             align-items: center; 
             border: 1px solid rgba(255, 255, 255, 0.12); 
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
-            transition: opacity 0.3s ease;
+            
+            /* Animación de ocultado suave */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
+            transform: translateX(-50%) translateY(10px);
         }
 
-        #controls:hover {
-            background: rgba(18, 18, 20, 0.9);
-            border-color: rgba(255, 255, 255, 0.25);
+        /* Cuando la clase 'visible' está activa, la barra aparece */
+        #controls.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
         }
 
         #controls input { 
@@ -68,7 +75,6 @@
             font-size: 14px; 
             font-family: 'Poppins', sans-serif;
             outline: none; 
-            transition: all 0.3s ease;
         }
 
         #controls input:focus { 
@@ -97,14 +103,9 @@
         #controls button:hover { 
             background: linear-gradient(135deg, #60a5fa, #2563eb);
             transform: translateY(-1px);
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.6);
         }
 
-        #controls button:active {
-            transform: translateY(1px);
-        }
-
-        /* Overlay inicial elegante */
+        /* Overlay inicial */
         #overlay { 
             position: absolute; 
             top: 0; 
@@ -124,25 +125,15 @@
             font-family: 'Poppins', sans-serif;
         }
 
-        #overlay h2 { 
-            margin: 0 0 8px 0; 
-            font-weight: 600;
-            font-size: 26px;
-            letter-spacing: 0.5px;
-        }
-
-        #overlay p {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            margin: 0;
-        }
+        #overlay h2 { margin: 0 0 8px 0; font-weight: 600; font-size: 26px; }
+        #overlay p { color: rgba(255, 255, 255, 0.6); font-size: 14px; margin: 0; }
     </style>
 </head>
 <body>
 
     <div id="overlay" onclick="activatePlayer()">
         <h2>Haz clic aquí para activar la TV</h2>
-        <p>Habilita el sonido y el panel interactivo</p>
+        <p>Habilita el sonido y los controles inteligentes</p>
     </div>
     
     <div id="player"></div>
@@ -166,6 +157,7 @@
         var player;
         var isReady = false;
         var currentVideoID = "";
+        var hideTimeout;
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
@@ -176,6 +168,7 @@
                         isReady = true; 
                         player.mute(); 
                         listenFirebase(); 
+                        initUIControls();
                     } 
                 }
             });
@@ -187,6 +180,28 @@
                 player.unMute(); 
                 player.setVolume(100); 
             }
+        }
+
+        // Sistema para mostrar la barra al mover el mouse y ocultarla tras 3 segundos de inactividad
+        function initUIControls() {
+            const controls = document.getElementById('controls');
+
+            function showControls() {
+                controls.classList.add('visible');
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    // Si el mouse no está encima del input o botón, se oculta
+                    if (!controls.matches(':hover')) {
+                        controls.classList.remove('visible');
+                    }
+                }, 3000); // Se oculta tras 3 segundos
+            }
+
+            window.addEventListener('mousemove', showControls);
+            controls.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+            controls.addEventListener('mouseleave', () => {
+                hideTimeout = setTimeout(() => controls.classList.remove('visible'), 2000);
+            });
         }
 
         function extractYouTubeID(url) {
