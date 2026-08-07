@@ -3,38 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <title>SL YouTube Sync TV</title>
+    <!-- Importamos una tipografía moderna -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; background: #000; overflow: hidden; width: 100vw; height: 100vh; font-family: Arial, sans-serif; }
-        #player { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
-        #player iframe { width: 100% !important; height: 100% !important; position: absolute; top: 0; left: 0; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #050505; 
+            overflow: hidden; 
+            width: 100vw; 
+            height: 100vh; 
+            font-family: 'Poppins', sans-serif; 
+        }
         
-        /* Panel de control flotante integrado en la pantalla */
-        #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 10px 20px; border-radius: 8px; display: flex; gap: 10px; align-items: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #controls input { padding: 8px 12px; width: 300px; border-radius: 4px; border: none; background: #222; color: #fff; font-size: 14px; outline: none; }
-        #controls button { padding: 8px 16px; background: #cc0000; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
-        #controls button:hover { background: #ff0000; }
+        #player { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
+        
+        #player iframe { 
+            width: 100% !important; 
+            height: 100% !important; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+        }
+        
+        /* Panel de control con diseño flotante moderno (Glassmorphism) */
+        #controls { 
+            position: absolute; 
+            bottom: 25px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 10; 
+            background: rgba(18, 18, 20, 0.75); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            padding: 12px 20px; 
+            border-radius: 14px; 
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            border: 1px solid rgba(255, 255, 255, 0.12); 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
+            transition: opacity 0.3s ease;
+        }
 
-        /* Overlay inicial obligatorio para desbloquear el audio en el visor */
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; background: rgba(0,0,0,0.95); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; text-align: center; }
-        h2 { margin: 0 0 10px 0; }
+        #controls:hover {
+            background: rgba(18, 18, 20, 0.9);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        #controls input { 
+            padding: 10px 14px; 
+            width: 320px; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            background: rgba(0, 0, 0, 0.5); 
+            color: #fff; 
+            font-size: 14px; 
+            font-family: 'Poppins', sans-serif;
+            outline: none; 
+            transition: all 0.3s ease;
+        }
+
+        #controls input:focus { 
+            border-color: #3b82f6; 
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        #controls input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        #controls button { 
+            padding: 10px 20px; 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+            color: #fff; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 14px; 
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        #controls button:hover { 
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.6);
+        }
+
+        #controls button:active {
+            transform: translateY(1px);
+        }
+
+        /* Overlay inicial elegante */
+        #overlay { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 20; 
+            background: rgba(5, 5, 5, 0.95); 
+            backdrop-filter: blur(8px);
+            color: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            text-align: center; 
+            font-family: 'Poppins', sans-serif;
+        }
+
+        #overlay h2 { 
+            margin: 0 0 8px 0; 
+            font-weight: 600;
+            font-size: 26px;
+            letter-spacing: 0.5px;
+        }
+
+        #overlay p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 
     <div id="overlay" onclick="activatePlayer()">
         <h2>Haz clic aquí para activar la TV</h2>
-        <p>Esto habilitará el sonido y el buscador integrado en pantalla</p>
+        <p>Habilita el sonido y el panel interactivo</p>
     </div>
     
     <div id="player"></div>
 
-    <!-- Buscador integrado directamente en la interfaz -->
     <div id="controls">
-        <input type="text" id="videoInput" placeholder="Pega link o ID de YouTube aquí..." />
+        <input type="text" id="videoInput" placeholder="Pega link o ID de YouTube..." />
         <button onclick="changeVideo()">Reproducir</button>
     </div>
 
-    <!-- Firebase y YouTube APIs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -72,7 +189,6 @@
             }
         }
 
-        // Limpiador automático: extrae la ID ya sea que pegues el link completo o solo el código
         function extractYouTubeID(url) {
             if (!url) return "";
             url = url.trim();
@@ -92,7 +208,6 @@
 
             let serverTime = Math.floor(Date.now() / 1000);
             
-            // Envía la orden directamente a Firebase desde la pantalla web
             dbRef.set({
                 videoId: videoId,
                 startTime: serverTime,
