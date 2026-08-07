@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL YouTube Sync TV</title>
+    <title>SL YouTube Sync TV - Playlist Visual</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -33,7 +33,7 @@
             left: 0; 
         }
         
-        /* Panel de control con efecto auto-ocultable */
+        /* Panel de control inferior (Buscador) */
         #controls { 
             position: absolute; 
             bottom: 25px; 
@@ -46,19 +46,17 @@
             padding: 12px 20px; 
             border-radius: 14px; 
             display: flex; 
-            gap: 12px; 
+            gap: 10px; 
             align-items: center; 
             border: 1px solid rgba(255, 255, 255, 0.12); 
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
             
-            /* Animación de ocultado suave */
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
             transform: translateX(-50%) translateY(10px);
         }
 
-        /* Cuando la clase 'visible' está activa, la barra aparece */
         #controls.visible {
             opacity: 1;
             visibility: visible;
@@ -67,7 +65,7 @@
 
         #controls input { 
             padding: 10px 14px; 
-            width: 320px; 
+            width: 260px; 
             border-radius: 8px; 
             border: 1px solid rgba(255, 255, 255, 0.1); 
             background: rgba(0, 0, 0, 0.5); 
@@ -86,23 +84,160 @@
             color: rgba(255, 255, 255, 0.4);
         }
 
-        #controls button { 
-            padding: 10px 20px; 
+        .btn { 
+            padding: 10px 16px; 
             background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
             color: #fff; 
             border: none; 
             border-radius: 8px; 
             cursor: pointer; 
             font-weight: 600; 
-            font-size: 14px; 
+            font-size: 13px; 
             font-family: 'Poppins', sans-serif;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
             transition: all 0.2s ease;
         }
 
-        #controls button:hover { 
+        .btn:hover { 
             background: linear-gradient(135deg, #60a5fa, #2563eb);
             transform: translateY(-1px);
+        }
+
+        /* Botón flotante para abrir/cerrar la Playlist lateral */
+        #playlist-toggle {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            z-index: 15;
+            background: rgba(18, 18, 20, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        #playlist-toggle:hover {
+            background: rgba(40, 40, 45, 0.95);
+        }
+
+        /* Panel Lateral de Playlist (Sidebar) */
+        #sidebar {
+            position: absolute;
+            top: 0;
+            right: -320px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(12, 12, 15, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 25;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.7);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: right 0.4s cubic-bezier(0.1, 1, 0.1, 1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #sidebar.open {
+            right: 0;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: #fff; }
+
+        /* Lista de elementos en la cola */
+        #queue-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 5px;
+        }
+
+        #queue-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #queue-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .queue-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .queue-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .queue-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+        }
+
+        .queue-item img {
+            width: 75px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .queue-item-info {
+            font-size: 12px;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .sidebar-footer {
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
         }
 
         /* Overlay inicial */
@@ -112,7 +247,7 @@
             left: 0; 
             width: 100%; 
             height: 100%; 
-            z-index: 20; 
+            z-index: 30; 
             background: rgba(5, 5, 5, 0.95); 
             backdrop-filter: blur(8px);
             color: #fff; 
@@ -133,14 +268,32 @@
 
     <div id="overlay" onclick="activatePlayer()">
         <h2>Haz clic aquí para activar la TV</h2>
-        <p>Habilita el sonido y los controles inteligentes</p>
+        <p>Habilita el sonido y la lista de reproducción interactiva</p>
     </div>
     
     <div id="player"></div>
 
+    <!-- Botón superior para abrir la playlist -->
+    <button id="playlist-toggle" onclick="toggleSidebar()">📺 Ver Cola</button>
+
+    <!-- Panel lateral deslizante -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h3>Lista de Reproducción</h3>
+            <button class="close-btn" onclick="toggleSidebar()">&times;</button>
+        </div>
+        <div id="queue-list">
+            <!-- Los videos cargados aparecerán aquí dinámicamente -->
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn" onclick="clearQueue()" style="width: 100%; background: linear-gradient(135deg, #ef4444, #b91c1c);">Vaciar Cola</button>
+        </div>
+    </div>
+
+    <!-- Controles inferiores (Buscador) -->
     <div id="controls">
         <input type="text" id="videoInput" placeholder="Pega link o ID de YouTube..." />
-        <button onclick="changeVideo()">Reproducir</button>
+        <button class="btn" onclick="addToQueue()">Agregar</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -169,7 +322,8 @@
                         player.mute(); 
                         listenFirebase(); 
                         initUIControls();
-                    } 
+                    },
+                    'onStateChange': onPlayerStateChange
                 }
             });
         }
@@ -182,7 +336,27 @@
             }
         }
 
-        // Sistema para mostrar la barra al mover el mouse y ocultarla tras 3 segundos de inactividad
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                dbRef.once('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data || !data.playlist) return;
+
+                    let playlist = data.playlist;
+                    let currentIndex = data.currentIndex || 0;
+
+                    if (currentIndex + 1 < playlist.length) {
+                        dbRef.update({ currentIndex: currentIndex + 1 });
+                    }
+                });
+            }
+        }
+
         function initUIControls() {
             const controls = document.getElementById('controls');
 
@@ -190,11 +364,10 @@
                 controls.classList.add('visible');
                 clearTimeout(hideTimeout);
                 hideTimeout = setTimeout(() => {
-                    // Si el mouse no está encima del input o botón, se oculta
                     if (!controls.matches(':hover')) {
                         controls.classList.remove('visible');
                     }
-                }, 3000); // Se oculta tras 3 segundos
+                }, 3500);
             }
 
             window.addEventListener('mousemove', showControls);
@@ -212,7 +385,7 @@
             return (match && match[2].length == 11) ? match[2] : (url.length == 11 ? url : "");
         }
 
-        function changeVideo() {
+        function addToQueue() {
             let inputVal = document.getElementById('videoInput').value;
             let videoId = extractYouTubeID(inputVal);
             
@@ -221,15 +394,33 @@
                 return;
             }
 
-            let serverTime = Math.floor(Date.now() / 1000);
-            
-            dbRef.set({
-                videoId: videoId,
-                startTime: serverTime,
-                paused: false
-            });
+            dbRef.once('value', (snapshot) => {
+                const data = snapshot.val() || {};
+                let playlist = data.playlist || [];
+                let currentIndex = data.currentIndex || 0;
 
-            document.getElementById('videoInput').value = "";
+                playlist.push(videoId);
+
+                let updates = { playlist: playlist };
+                if (playlist.length === 1 || currentIndex >= playlist.length) {
+                    updates.currentIndex = playlist.length - 1;
+                }
+
+                dbRef.update(updates);
+                document.getElementById('videoInput').value = "";
+            });
+        }
+
+        // Seleccionar y reproducir directamente un video de la lista al hacer clic
+        function selectVideo(index) {
+            dbRef.update({ currentIndex: index });
+        }
+
+        function clearQueue() {
+            dbRef.set({
+                playlist: ['dQw4w9WgXcQ'],
+                currentIndex: 0
+            });
         }
 
         function listenFirebase() {
@@ -237,24 +428,36 @@
                 const data = snapshot.val();
                 if (!data || !isReady) return;
 
-                const serverTime = Math.floor(Date.now() / 1000);
-                const targetTime = serverTime - data.startTime;
+                const playlist = data.playlist || [];
+                const currentIndex = data.currentIndex || 0;
 
-                if (data.videoId && data.videoId !== currentVideoID) {
-                    currentVideoID = data.videoId;
-                    player.loadVideoById(currentVideoID, targetTime);
-                    return;
-                }
+                // Renderizar la lista lateral con miniaturas
+                const queueListEl = document.getElementById('queue-list');
+                queueListEl.innerHTML = "";
 
-                if (data.paused) {
-                    player.pauseVideo();
-                } else {
-                    player.playVideo();
-                }
+                playlist.forEach((id, index) => {
+                    let itemDiv = document.createElement('div');
+                    itemDiv.className = `queue-item ${index === currentIndex ? 'active' : ''}`;
+                    itemDiv.onclick = () => selectVideo(index);
+                    
+                    let thumbUrl = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+                    
+                    itemDiv.innerHTML = `
+                        <img src="${thumbUrl}" alt="Thumbnail">
+                        <div class="queue-item-info">
+                            <b>#${index + 1}</b><br>
+                            ID: ${id}
+                        </div>
+                    `;
+                    queueListEl.appendChild(itemDiv);
+                });
 
-                let actualTime = player.getCurrentTime();
-                if (Math.abs(actualTime - targetTime) > 2.0) {
-                    player.seekTo(targetTime, true);
+                if (playlist.length === 0) return;
+
+                const targetVideoID = playlist[currentIndex];
+                if (targetVideoID && targetVideoID !== currentVideoID) {
+                    currentVideoID = targetVideoID;
+                    player.loadVideoById(currentVideoID);
                 }
             });
         }
