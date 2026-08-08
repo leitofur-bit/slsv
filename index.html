@@ -2,190 +2,105 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL Universal TV - Clean Queue</title>
+    <title>SL Universal TV - Dual Mode (Base + Queue)</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
-            margin: 0; 
-            padding: 0; 
-            background: #000000; 
-            overflow: hidden; 
-            width: 100vw; 
-            height: 100vh; 
-            font-family: 'Poppins', sans-serif; 
-            cursor: default;
+            margin: 0; padding: 0; background: #000000; overflow: hidden; 
+            width: 100vw; height: 100vh; font-family: 'Poppins', sans-serif; cursor: default;
         }
         
         #media-container { 
-            width: 100%; 
-            height: 100%; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 1; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255, 255, 255, 0.2);
-            font-size: 18px;
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; 
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255, 255, 255, 0.2); font-size: 18px;
         }
         
         #media-container iframe { 
-            width: 100% !important; 
-            height: 100% !important; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            border: none;
+            width: 100% !important; height: 100% !important; position: absolute; top: 0; left: 0; border: none;
         }
         
         #controls { 
-            position: absolute; 
-            bottom: 25px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            z-index: 10; 
-            background: rgba(18, 18, 20, 0.85); 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px);
-            padding: 12px 20px; 
-            border-radius: 14px; 
-            display: flex; 
-            gap: 10px; 
-            align-items: center; 
-            border: 1px solid rgba(255, 255, 255, 0.12); 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
-            
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 10; 
+            background: rgba(18, 18, 20, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 12px 20px; border-radius: 14px; display: flex; gap: 10px; align-items: center; 
+            border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
+            opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
             transform: translateX(-50%) translateY(10px);
         }
 
         #controls.visible {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
+            opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
         }
 
-        #controls input { 
-            padding: 10px 14px; 
-            width: 280px; 
-            border-radius: 8px; 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            background: rgba(0, 0, 0, 0.5); 
-            color: #fff; 
-            font-size: 14px; 
-            font-family: 'Poppins', sans-serif;
-            outline: none; 
+        .input-text { 
+            padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); 
+            background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 14px; font-family: 'Poppins', sans-serif; outline: none; 
         }
 
-        #controls input:focus { 
-            border-color: #3b82f6; 
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-        }
+        #controls .input-text { width: 280px; }
+        .input-text:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
 
         .btn { 
-            padding: 10px 14px; 
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
-            color: #fff; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 13px; 
-            font-family: 'Poppins', sans-serif;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            padding: 10px 14px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+            color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; 
+            font-size: 13px; font-family: 'Poppins', sans-serif; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
             transition: all 0.2s ease;
         }
 
-        .btn:hover { 
-            background: linear-gradient(135deg, #60a5fa, #2563eb);
-            transform: translateY(-1px);
-        }
+        .btn:hover { background: linear-gradient(135deg, #60a5fa, #2563eb); transform: translateY(-1px); }
 
         #playlist-toggle {
-            position: absolute;
-            top: 25px;
-            right: 25px;
-            z-index: 15;
-            background: rgba(18, 18, 20, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #fff;
-            padding: 10px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-            font-size: 13px;
+            position: absolute; top: 25px; right: 25px; z-index: 15;
+            background: rgba(18, 18, 20, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-family: 'Poppins', sans-serif;
+            font-weight: 600; font-size: 13px;
         }
 
         #sidebar {
-            position: absolute;
-            top: 0;
-            right: -320px;
-            width: 300px;
-            height: 100vh;
-            background: rgba(12, 12, 15, 0.92);
-            backdrop-filter: blur(16px);
-            z-index: 25;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.7);
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            flex-direction: column;
-            transition: right 0.4s cubic-bezier(0.1, 1, 0.1, 1);
-            padding: 20px;
-            box-sizing: border-box;
+            position: absolute; top: 0; right: -340px; width: 340px; height: 100vh;
+            background: rgba(12, 12, 15, 0.95); backdrop-filter: blur(16px); z-index: 25;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.7); border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; flex-direction: column; transition: right 0.4s cubic-bezier(0.1, 1, 0.1, 1);
+            padding: 20px; box-sizing: border-box;
         }
 
         #sidebar.open { right: 0; }
 
         .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-            color: #fff;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; margin-bottom: 15px; color: #fff;
         }
 
         .close-btn { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; }
 
+        .section-title {
+            font-size: 11px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;
+            margin-bottom: 8px; font-weight: 600;
+        }
+
+        .input-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        .input-group .input-text { flex: 1; font-size: 12px; padding: 8px; }
+        .input-group .btn { padding: 8px 12px; font-size: 12px; }
+
         #queue-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;
         }
 
         .queue-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: #fff;
-            font-size: 12px;
-            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px;
+            color: #fff; font-size: 12px; border: 1px solid transparent; word-break: break-all;
         }
-        .queue-item:hover { background: rgba(255, 255, 255, 0.1); border-color: #3b82f6; }
+        
+        .queue-item.clickable { cursor: pointer; }
+        .queue-item.clickable:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.5); }
         .queue-item.active { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
 
         #overlay { 
-            position: absolute; 
-            top: 0; left: 0; width: 100%; height: 100%; 
-            z-index: 30; 
-            background: rgba(5, 5, 5, 0.95); 
-            backdrop-filter: blur(8px);
-            color: #fff; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            cursor: pointer; 
-            text-align: center; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; 
+            background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(8px); color: #fff; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            cursor: pointer; text-align: center; 
         }
     </style>
 </head>
@@ -198,23 +113,41 @@
     
     <div id="media-container">Pantalla en espera...</div>
 
-    <button id="playlist-toggle" onclick="toggleSidebar()">📺 Cola / Enlaces</button>
+    <button id="playlist-toggle" onclick="toggleSidebar()">📺 Menú y Listas</button>
 
     <div id="sidebar">
         <div class="sidebar-header">
-            <h3>Elementos en Cola</h3>
+            <h3 style="margin: 0;">Gestión de Medios</h3>
             <button class="close-btn" onclick="toggleSidebar()">&times;</button>
         </div>
+
+        <!-- SECCIÓN 1: PLAYLIST BASE -->
+        <div class="section-title">1. Playlist Principal (YouTube)</div>
+        <div class="input-group">
+            <input type="text" id="baseInput" class="input-text" placeholder="Pega el link de YouTube Playlist..." />
+            <button class="btn" onclick="setBasePlaylist()">Fijar</button>
+        </div>
+        <div id="base-info" style="margin-bottom: 20px;"></div>
+
+        <!-- SECCIÓN 2: COLA DE USUARIOS -->
+        <div class="section-title">2. Cola de Usuarios</div>
+        <div class="input-group">
+            <input type="text" id="sidebarUrlInput" class="input-text" placeholder="Pega link de YT, FB, Twitch, Spotify..." />
+            <button class="btn" onclick="addToQueue('sidebarUrlInput')">Añadir</button>
+        </div>
         <div id="queue-list"></div>
+
+        <!-- CONTROLES GLOBALES -->
         <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;">
-            <button class="btn" onclick="nextVideo()" style="flex: 1; background: #10b981;">Siguiente ⏭</button>
-            <button class="btn" onclick="clearQueue()" style="flex: 1; background: #ef4444;">Apagar TV</button>
+            <button class="btn" onclick="nextVideoUI()" style="flex: 1; background: #10b981;">Siguiente ⏭</button>
+            <button class="btn" onclick="clearAll()" style="flex: 1; background: #ef4444;">Limpiar Todo</button>
         </div>
     </div>
 
+    <!-- CONTROLES RÁPIDOS INFERIORES -->
     <div id="controls">
-        <input type="text" id="urlInput" placeholder="Pega link de YT, FB, Twitch, Spotify..." />
-        <button class="btn" onclick="addToQueue()">Agregar</button>
+        <input type="text" id="floatingUrlInput" class="input-text" placeholder="Añadir rápido a la cola de usuarios..." />
+        <button class="btn" onclick="addToQueue('floatingUrlInput')">Agregar a Cola</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -229,7 +162,9 @@
         const dbRef = firebase.database().ref('tv');
 
         var isActivated = false;
-        var currentURL = "";
+        var activePlayType = ""; // Puede ser "BASE" o "QUEUE"
+        var currentItem = "";
+        var currentYtIndex = 0;
         var ytPlayer = null;
 
         function activatePlayer() {
@@ -245,12 +180,13 @@
         function initUIControls() {
             const controls = document.getElementById('controls');
             let hideTimeout;
-
             window.addEventListener('mousemove', () => {
                 controls.classList.add('visible');
                 clearTimeout(hideTimeout);
                 hideTimeout = setTimeout(() => {
-                    if (!controls.matches(':hover')) controls.classList.remove('visible');
+                    if (!controls.matches(':hover') && document.activeElement !== document.getElementById('floatingUrlInput')) {
+                        controls.classList.remove('visible');
+                    }
                 }, 3500);
             });
         }
@@ -260,65 +196,73 @@
             if (!input) return "";
             input = input.trim();
 
-            // 1. YouTube
             let ytMatch = input.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-            if (ytMatch && ytMatch[1]) {
-                return "YT:" + ytMatch[1];
-            }
+            if (ytMatch && ytMatch[1]) return "YT:" + ytMatch[1];
 
-            // 2. Facebook Videos
             if (input.includes("facebook.com") || input.includes("fb.watch")) {
                 let targetUrl = input;
                 try {
                     let urlObj = new URL(input);
                     if (urlObj.searchParams.has("v")) {
                         targetUrl = `https://www.facebook.com/watch/?v=${urlObj.searchParams.get("v")}`;
-                    } else {
-                        targetUrl = urlObj.origin + urlObj.pathname;
-                    }
-                } catch (e) {
-                    targetUrl = input.split("?")[0];
-                }
-
+                    } else targetUrl = urlObj.origin + urlObj.pathname;
+                } catch (e) { targetUrl = input.split("?")[0]; }
                 return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(targetUrl)}&show_text=false&autoplay=true`;
             }
 
-            // 3. Twitch
             let twitchMatch = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
             if (twitchMatch && twitchMatch[1]) {
                 let currentDomain = window.location.hostname || "localhost";
                 return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${currentDomain}&autoplay=true`;
             }
 
-            // 4. Vimeo
             let vimeoMatch = input.match(/vimeo\.com\/(\d+)/);
-            if (vimeoMatch && vimeoMatch[1]) {
-                return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
-            }
+            if (vimeoMatch && vimeoMatch[1]) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
 
-            // 5. Spotify
             let spotifyMatch = input.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
-            if (spotifyMatch) {
-                return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
-            }
+            if (spotifyMatch) return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
             
-            // 6. SoundCloud
-            if (input.includes("soundcloud.com")) {
-                return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
-            }
-
-            // 7. Páginas web generales
-            if (input.startsWith("http://") || input.startsWith("https://")) {
-                return input;
-            }
+            if (input.includes("soundcloud.com")) return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
+            
+            if (input.startsWith("http://") || input.startsWith("https://")) return input;
 
             return "";
         }
 
-        // USO DE TRANSACCIÓN PARA GARANTIZAR COLA MÚLTIPLE SIN SOBREESCRIBIR
-        function addToQueue() {
-            let val = document.getElementById('urlInput').value;
-            let embedUrl = parseEmbedURL(val);
+        // ====== GESTIÓN DE LA PLAYLIST PRINCIPAL ======
+        function setBasePlaylist() {
+            let val = document.getElementById('baseInput').value;
+            let match = val.match(/[?&]list=([^#\&\?]+)/);
+            if(match && match[1]) {
+                dbRef.update({
+                    basePlaylistId: match[1],
+                    basePlaylistIndex: 0,
+                    baseFinished: false
+                });
+                document.getElementById('baseInput').value = "";
+            } else {
+                alert("Por favor, introduce un enlace válido de YouTube que contenga una Playlist (ejemplo: ?list=PL...)");
+            }
+        }
+
+        function finishBasePlaylist() {
+            dbRef.transaction(data => {
+                if (data) data.baseFinished = true;
+                return data;
+            });
+        }
+
+        function nextBaseVideo(newIndex) {
+            dbRef.transaction(data => {
+                if (data) data.basePlaylistIndex = newIndex;
+                return data;
+            });
+        }
+
+        // ====== GESTIÓN DE LA COLA DE USUARIOS ======
+        function addToQueue(sourceId) {
+            let inputEl = document.getElementById(sourceId);
+            let embedUrl = parseEmbedURL(inputEl.value);
 
             if (!embedUrl) {
                 alert("Enlace no compatible o inválido.");
@@ -326,107 +270,177 @@
             }
 
             dbRef.child('playlist').transaction((playlist) => {
-                if (!playlist) {
-                    playlist = [];
-                }
+                if (!playlist) playlist = [];
                 playlist.push(embedUrl);
                 return playlist;
             }, (error, committed) => {
-                if (committed) {
-                    document.getElementById('urlInput').value = "";
-                }
+                if (committed) inputEl.value = "";
             });
         }
 
-        function nextVideo() {
+        function nextQueueItem() {
             dbRef.child('playlist').transaction((playlist) => {
-                if (playlist && playlist.length > 0) {
-                    playlist.shift();
-                }
+                if (playlist && playlist.length > 0) playlist.shift();
                 return playlist;
             });
         }
 
-        function selectItem(index) {
-            dbRef.child('playlist').transaction((playlist) => {
-                if (playlist) {
-                    return playlist.slice(index);
-                }
-                return [];
+        function selectQueueItem(index) {
+            dbRef.transaction(data => {
+                if (!data) return data;
+                data.baseFinished = true; // Si el usuario fuerza la cola, damos por finalizada la playlist base
+                if (data.playlist) data.playlist = data.playlist.slice(index);
+                return data;
             });
         }
 
-        function clearQueue() {
+        // ====== CONTROL GENERAL ======
+        function nextVideoUI() {
+            if (activePlayType === "BASE" && ytPlayer && ytPlayer.getPlaylist) {
+                let cIdx = ytPlayer.getPlaylistIndex();
+                let arr = ytPlayer.getPlaylist();
+                if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
+                else nextBaseVideo(cIdx + 1);
+            } else {
+                nextQueueItem();
+            }
+        }
+
+        function clearAll() {
             dbRef.set({
+                basePlaylistId: "",
+                basePlaylistIndex: 0,
+                baseFinished: false,
                 playlist: []
             });
         }
 
         function listenFirebase() {
             dbRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (!data || !isActivated) return;
+                const data = snapshot.val() || {};
+                if (!isActivated) return;
 
+                // 1. DIBUJAR UI: SECCIÓN PLAYLIST BASE
+                let baseHtml = "";
+                if (data.basePlaylistId && !data.baseFinished) {
+                    baseHtml = `<div class="queue-item active">
+                        <b>📺 Reproduciendo Lista Base</b><br>
+                        <span style="font-size:10px; color:#9ca3af;">ID: ${data.basePlaylistId}</span><br>
+                        Sincronizando Video #${(data.basePlaylistIndex || 0) + 1}
+                    </div>`;
+                } else if (data.baseFinished) {
+                    baseHtml = `<div class="queue-item" style="border-left: 3px solid #ef4444; opacity: 0.6;">
+                        <b>✅ Lista Base Finalizada</b><br>
+                        <span style="font-size:10px;">Transfiriendo a la Cola de Usuarios...</span>
+                    </div>`;
+                } else {
+                    baseHtml = `<div class="queue-item" style="opacity: 0.4;">Ninguna lista base asignada</div>`;
+                }
+                document.getElementById('base-info').innerHTML = baseHtml;
+
+                // 2. DIBUJAR UI: SECCIÓN COLA
                 const playlist = data.playlist || [];
-
                 const listEl = document.getElementById('queue-list');
                 listEl.innerHTML = "";
-
                 playlist.forEach((item, idx) => {
                     let div = document.createElement('div');
-                    div.className = `queue-item ${idx === 0 ? 'active' : ''}`;
-                    div.onclick = () => selectItem(idx);
+                    let isActive = (idx === 0 && data.baseFinished === true) || (idx === 0 && !data.basePlaylistId);
+                    div.className = `queue-item clickable ${isActive ? 'active' : ''}`;
+                    div.onclick = () => selectQueueItem(idx);
                     div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${item}</span>`;
                     listEl.appendChild(div);
                 });
 
-                const container = document.getElementById('media-container');
+                // 3. DETERMINAR QUÉ REPRODUCIR (LA CASCADA)
+                let targetType = "";
+                let targetItem = "";
+                let targetIndex = 0;
 
-                if (playlist.length === 0) {
-                    currentURL = "";
-                    container.innerHTML = "Pantalla en espera...";
+                if (data.basePlaylistId && !data.baseFinished) {
+                    targetType = "BASE";
+                    targetItem = data.basePlaylistId;
+                    targetIndex = data.basePlaylistIndex || 0;
+                } else if (playlist.length > 0) {
+                    targetType = "QUEUE";
+                    targetItem = playlist[0];
+                }
+
+                if (!targetType) {
+                    activePlayType = "";
+                    currentItem = "";
+                    document.getElementById('media-container').innerHTML = "Pantalla en espera... (Vacío)";
                     return;
                 }
 
-                const targetItem = playlist[0];
-                if (targetItem && targetItem !== currentURL) {
-                    currentURL = targetItem;
-                    loadMedia(currentURL);
+                // 4. APLICAR CAMBIOS AL REPRODUCTOR
+                if (targetType !== activePlayType || targetItem !== currentItem) {
+                    // Cambio drástico: nueva plataforma, o paso de Base a Queue
+                    activePlayType = targetType;
+                    currentItem = targetItem;
+                    currentYtIndex = targetIndex;
+                    loadMedia(targetType, currentItem, currentYtIndex);
+                } else if (targetType === "BASE" && targetIndex !== currentYtIndex) {
+                    // Sigue la misma lista base, pero avanzó de índice
+                    currentYtIndex = targetIndex;
+                    if (ytPlayer && typeof ytPlayer.playVideoAt === 'function') {
+                        ytPlayer.playVideoAt(currentYtIndex);
+                    } else {
+                        loadMedia(targetType, currentItem, currentYtIndex);
+                    }
                 }
             });
         }
 
-        function loadMedia(item) {
+        function loadMedia(type, item, index) {
             const container = document.getElementById('media-container');
             
-            if (item.startsWith("YT:")) {
-                let videoId = item.replace("YT:", "");
+            if (type === "BASE") {
                 container.innerHTML = '<div id="yt-player"></div>';
-                
                 ytPlayer = new YT.Player('yt-player', {
-                    videoId: videoId,
                     playerVars: { 
-                        'autoplay': 1, 
-                        'controls': 1, 
-                        'rel': 0, 
-                        'enablejsapi': 1,
-                        'origin': window.location.origin
+                        listType: 'playlist',
+                        list: item,
+                        index: index,
+                        autoplay: 1, controls: 1, rel: 0, enablejsapi: 1,
+                        origin: window.location.origin
                     },
                     events: {
                         'onStateChange': (event) => {
-                            if (event.data === 0) {
-                                nextVideo();
+                            if (event.data === 0) { // El video termina
+                                let cIdx = event.target.getPlaylistIndex();
+                                let arr = event.target.getPlaylist();
+                                if (arr && cIdx >= arr.length - 1) finishBasePlaylist(); // Llegó al final de la playlist
+                                else nextBaseVideo(cIdx + 1); // Pasa al siguiente
                             }
+                        },
+                        'onError': (event) => {
+                            // Salto de seguridad si un video fue borrado o bloqueado
+                            let cIdx = event.target.getPlaylistIndex();
+                            let arr = event.target.getPlaylist();
+                            if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
+                            else nextBaseVideo(cIdx + 1);
                         }
                     }
                 });
-            } else {
-                container.innerHTML = `<iframe 
-                    src="${item}" 
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; microphone; camera" 
-                    referrerpolicy="no-referrer-when-downgrade" 
-                    allowfullscreen>
-                </iframe>`;
+            } else if (type === "QUEUE") {
+                if (item.startsWith("YT:")) {
+                    let videoId = item.replace("YT:", "");
+                    container.innerHTML = '<div id="yt-player"></div>';
+                    ytPlayer = new YT.Player('yt-player', {
+                        videoId: videoId,
+                        playerVars: { 
+                            autoplay: 1, controls: 1, rel: 0, enablejsapi: 1,
+                            origin: window.location.origin
+                        },
+                        events: {
+                            'onStateChange': (event) => {
+                                if (event.data === 0) nextQueueItem();
+                            }
+                        }
+                    });
+                } else {
+                    container.innerHTML = `<iframe src="${item}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; microphone; camera" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
+                }
             }
         }
     </script>
