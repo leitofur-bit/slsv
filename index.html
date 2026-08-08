@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL Universal TV - Auto Next</title>
+    <title>SL Universal TV - Clean Queue</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
             margin: 0; 
             padding: 0; 
-            background: #050505; 
+            background: #000000; /* Pantalla totalmente negra al inicio */
             overflow: hidden; 
             width: 100vw; 
             height: 100vh; 
@@ -23,6 +23,11 @@
             top: 0; 
             left: 0; 
             z-index: 1; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 18px;
         }
         
         #media-container iframe { 
@@ -188,10 +193,10 @@
 
     <div id="overlay" onclick="activatePlayer()">
         <h2>Haz clic aquí para activar la Pantalla</h2>
-        <p>Habilita el sonido y la transición automática</p>
+        <p>Habilita el sonido y la sincronización</p>
     </div>
     
-    <div id="media-container"></div>
+    <div id="media-container">Pantalla en espera...</div>
 
     <button id="playlist-toggle" onclick="toggleSidebar()">📺 Cola / Enlaces</button>
 
@@ -203,7 +208,7 @@
         <div id="queue-list"></div>
         <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;">
             <button class="btn" onclick="nextVideo()" style="flex: 1; background: #10b981;">Siguiente ⏭</button>
-            <button class="btn" onclick="clearQueue()" style="flex: 1; background: #ef4444;">Vaciar</button>
+            <button class="btn" onclick="clearQueue()" style="flex: 1; background: #ef4444;">Apagar TV</button>
         </div>
     </div>
 
@@ -257,7 +262,6 @@
 
             let ytMatch = input.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
             if (ytMatch && ytMatch[1]) {
-                // Devolvemos solo el ID para manejarlo con la API oficial de YouTube y detectar el fin del video
                 return "YT:" + ytMatch[1];
             }
 
@@ -300,40 +304,39 @@
             dbRef.once('value', (snapshot) => {
                 const data = snapshot.val() || {};
                 let playlist = data.playlist || [];
-                let currentIndex = data.currentIndex || 0;
 
                 playlist.push(embedUrl);
-                let updates = { playlist: playlist };
-                if (playlist.length === 1 || currentIndex >= playlist.length) {
-                    updates.currentIndex = playlist.length - 1;
-                }
 
-                dbRef.update(updates);
+                dbRef.update({ 
+                    playlist: playlist 
+                });
                 document.getElementById('urlInput').value = "";
             });
         }
 
-        function selectItem(index) {
-            dbRef.update({ currentIndex: index });
-        }
-
+        // Cuando termina un video, lo borramos de la lista (shift) para que no se sature
         function nextVideo() {
             dbRef.once('value', (snapshot) => {
                 const data = snapshot.val();
-                if (!data || !data.playlist) return;
+                if (!data || !data.playlist || data.playlist.length === 0) return;
+                
                 let playlist = data.playlist;
-                let currentIndex = data.currentIndex || 0;
+                playlist.shift(); // Elimina el primer elemento (el video que acaba de terminar)
 
-                if (currentIndex + 1 < playlist.length) {
-                    dbRef.update({ currentIndex: currentIndex + 1 });
-                }
+                dbRef.set({ 
+                    playlist: playlist 
+                });
             });
+        }
+
+        function selectItem(index) {
+            // Si el usuario salta manualmente, podemos recortar lo anterior si se desea, o simplemente mantener la lista
+            dbRef.update({ currentIndex: index });
         }
 
         function clearQueue() {
             dbRef.set({
-                playlist: ['YT:dQw4w9WgXcQ'],
-                currentIndex: 0
+                playlist: []
             });
         }
 
@@ -343,22 +346,33 @@
                 if (!data || !isActivated) return;
 
                 const playlist = data.playlist || [];
-                const currentIndex = data.currentIndex || 0;
 
                 const listEl = document.getElementById('queue-list');
                 listEl.innerHTML = "";
 
                 playlist.forEach((item, idx) => {
                     let div = document.createElement('div');
-                    div.className = `queue-item ${idx === currentIndex ? 'active' : ''}`;
-                    div.onclick = () => selectItem(idx);
+                    div.className = `queue-item ${idx === 0 ? 'active' : ''}`;
+                    div.onclick = () => {
+                        // Opcional: si hace clic en uno adelantado, borra los anteriores
+                        let newPlaylist = playlist.slice(idx);
+                        dbRef.set({ playlist: newPlaylist });
+                    };
                     div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${item}</span>`;
                     listEl.appendChild(div);
                 });
 
-                if (playlist.length === 0) return;
+                const container = document.getElementById('media-container');
 
-                const targetItem = playlist[currentIndex];
+                // Si la cola está vacía, "apagamos" la pantalla (pantalla negra)
+                if (playlist.length === 0) {
+                    currentURL = "";
+                    container.innerHTML = "Pantalla en espera...";
+                    return;
+                }
+
+                // Siempre reproducimos el primer elemento de la lista
+                const targetItem = playlist[0];
                 if (targetItem && targetItem !== currentURL) {
                     currentURL = targetItem;
                     loadMedia(currentURL);
@@ -369,7 +383,6 @@
         function loadMedia(item) {
             const container = document.getElementById('media-container');
             
-            // Si es un video de YouTube, usamos el reproductor embebido con detección de fin (ENDED)
             if (item.startsWith("YT:")) {
                 let videoId = item.replace("YT:", "");
                 container.innerHTML = '<div id="yt-player"></div>';
@@ -379,7 +392,7 @@
                     playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'enablejsapi': 1 },
                     events: {
                         'onStateChange': (event) => {
-                            // Si el estado es 0 (ENDED / Terminado), avanza automáticamente al siguiente
+                            // Cuando el video de YouTube termina (estado 0), se borra solo y pasa al siguiente
                             if (event.data === 0) {
                                 nextVideo();
                             }
@@ -387,7 +400,6 @@
                     }
                 });
             } else {
-                // Para Twitch, Spotify, SoundCloud u otras webs
                 container.innerHTML = `<iframe src="${item}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
             }
         }
