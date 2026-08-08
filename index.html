@@ -219,6 +219,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         const firebaseConfig = {
@@ -229,6 +230,7 @@
 
         var isActivated = false;
         var currentURL = "";
+        var ytPlayer = null;
 
         function activatePlayer() {
             isActivated = true;
@@ -404,10 +406,33 @@
             
             if (item.startsWith("YT:")) {
                 let videoId = item.replace("YT:", "");
-                // Piped Embed: no activa bloqueos de Cloudflare y permite bypass directo
-                container.innerHTML = `<iframe src="https://piped.video/embed/${videoId}?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+                container.innerHTML = '<div id="yt-player"></div>';
+                
+                ytPlayer = new YT.Player('yt-player', {
+                    videoId: videoId,
+                    playerVars: { 
+                        'autoplay': 1, 
+                        'controls': 1, 
+                        'rel': 0, 
+                        'enablejsapi': 1,
+                        'origin': window.location.origin
+                    },
+                    events: {
+                        'onStateChange': (event) => {
+                            if (event.data === 0) {
+                                nextVideo();
+                            }
+                        }
+                    }
+                });
             } else {
-                container.innerHTML = `<iframe src="${item}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+                // Atributos de compatibilidad extendida para evitar bloqueos en páginas externas
+                container.innerHTML = `<iframe 
+                    src="${item}" 
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; microphone; camera" 
+                    referrerpolicy="no-referrer-when-downgrade" 
+                    allowfullscreen>
+                </iframe>`;
             }
         }
     </script>
