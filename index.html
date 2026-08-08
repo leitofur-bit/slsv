@@ -315,6 +315,7 @@
             return "";
         }
 
+        // USO DE TRANSACCIÓN PARA GARANTIZAR COLA MÚLTIPLE SIN SOBREESCRIBIR
         function addToQueue() {
             let val = document.getElementById('urlInput').value;
             let embedUrl = parseEmbedURL(val);
@@ -324,40 +325,34 @@
                 return;
             }
 
-            dbRef.once('value', (snapshot) => {
-                const data = snapshot.val() || {};
-                let playlist = data.playlist || [];
-
+            dbRef.child('playlist').transaction((playlist) => {
+                if (!playlist) {
+                    playlist = [];
+                }
                 playlist.push(embedUrl);
-
-                dbRef.update({ 
-                    playlist: playlist 
-                });
-                document.getElementById('urlInput').value = "";
+                return playlist;
+            }, (error, committed) => {
+                if (committed) {
+                    document.getElementById('urlInput').value = "";
+                }
             });
         }
 
         function nextVideo() {
-            dbRef.once('value', (snapshot) => {
-                const data = snapshot.val();
-                if (!data || !data.playlist || data.playlist.length === 0) return;
-                
-                let playlist = data.playlist;
-                playlist.shift(); 
-
-                dbRef.set({ 
-                    playlist: playlist 
-                });
+            dbRef.child('playlist').transaction((playlist) => {
+                if (playlist && playlist.length > 0) {
+                    playlist.shift();
+                }
+                return playlist;
             });
         }
 
         function selectItem(index) {
-            dbRef.once('value', (snapshot) => {
-                const data = snapshot.val();
-                if (!data || !data.playlist) return;
-                let playlist = data.playlist;
-                let newPlaylist = playlist.slice(index);
-                dbRef.set({ playlist: newPlaylist });
+            dbRef.child('playlist').transaction((playlist) => {
+                if (playlist) {
+                    return playlist.slice(index);
+                }
+                return [];
             });
         }
 
@@ -426,7 +421,6 @@
                     }
                 });
             } else {
-                // Atributos de compatibilidad extendida para evitar bloqueos en páginas externas
                 container.innerHTML = `<iframe 
                     src="${item}" 
                     allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; microphone; camera" 
