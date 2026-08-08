@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL Universal TV</title>
+    <title>SL Universal TV - Auto Next</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -16,7 +16,6 @@
             cursor: default;
         }
         
-        /* Contenedor general para videos o webframes */
         #media-container { 
             width: 100%; 
             height: 100%; 
@@ -66,7 +65,7 @@
 
         #controls input { 
             padding: 10px 14px; 
-            width: 320px; 
+            width: 280px; 
             border-radius: 8px; 
             border: 1px solid rgba(255, 255, 255, 0.1); 
             background: rgba(0, 0, 0, 0.5); 
@@ -82,7 +81,7 @@
         }
 
         .btn { 
-            padding: 10px 16px; 
+            padding: 10px 14px; 
             background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
             color: #fff; 
             border: none; 
@@ -189,7 +188,7 @@
 
     <div id="overlay" onclick="activatePlayer()">
         <h2>Haz clic aquí para activar la Pantalla</h2>
-        <p>Habilita el sonido y la reproducción universal</p>
+        <p>Habilita el sonido y la transición automática</p>
     </div>
     
     <div id="media-container"></div>
@@ -202,18 +201,20 @@
             <button class="close-btn" onclick="toggleSidebar()">&times;</button>
         </div>
         <div id="queue-list"></div>
-        <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
-            <button class="btn" onclick="clearQueue()" style="width: 100%; background: #ef4444;">Vaciar Cola</button>
+        <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;">
+            <button class="btn" onclick="nextVideo()" style="flex: 1; background: #10b981;">Siguiente ⏭</button>
+            <button class="btn" onclick="clearQueue()" style="flex: 1; background: #ef4444;">Vaciar</button>
         </div>
     </div>
 
     <div id="controls">
-        <input type="text" id="urlInput" placeholder="Pega link de YouTube, Twitch o Web..." />
+        <input type="text" id="urlInput" placeholder="Pega link de YouTube, Twitch, Spotify..." />
         <button class="btn" onclick="addToQueue()">Agregar</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         const firebaseConfig = {
@@ -224,6 +225,7 @@
 
         var isActivated = false;
         var currentURL = "";
+        var ytPlayer = null;
 
         function activatePlayer() {
             isActivated = true;
@@ -249,25 +251,36 @@
         }
         initUIControls();
 
-        // Identifica qué tipo de enlace es y devuelve la URL limpia para insertar en el Iframe
         function parseEmbedURL(input) {
             if (!input) return "";
             input = input.trim();
 
-            // Si es YouTube
             let ytMatch = input.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
             if (ytMatch && ytMatch[1]) {
-                return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&enablejsapi=1`;
+                // Devolvemos solo el ID para manejarlo con la API oficial de YouTube y detectar el fin del video
+                return "YT:" + ytMatch[1];
             }
 
-            // Si es Twitch (Canal)
             let twitchMatch = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
             if (twitchMatch && twitchMatch[1]) {
                 let domain = window.location.hostname || "localhost";
                 return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${domain}&autoplay=true`;
             }
 
-            // Si es una página web cualquiera (ej. SoundCloud, una radio online o web normal)
+            let vimeoMatch = input.match(/vimeo\.com\/(\d+)/);
+            if (vimeoMatch && vimeoMatch[1]) {
+                return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+            }
+
+            let spotifyMatch = input.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
+            if (spotifyMatch) {
+                return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
+            }
+            
+            if (input.includes("soundcloud.com")) {
+                return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
+            }
+
             if (input.startsWith("http://") || input.startsWith("https://")) {
                 return input;
             }
@@ -304,9 +317,22 @@
             dbRef.update({ currentIndex: index });
         }
 
+        function nextVideo() {
+            dbRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data || !data.playlist) return;
+                let playlist = data.playlist;
+                let currentIndex = data.currentIndex || 0;
+
+                if (currentIndex + 1 < playlist.length) {
+                    dbRef.update({ currentIndex: currentIndex + 1 });
+                }
+            });
+        }
+
         function clearQueue() {
             dbRef.set({
-                playlist: ['https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1'],
+                playlist: ['YT:dQw4w9WgXcQ'],
                 currentIndex: 0
             });
         }
@@ -319,26 +345,51 @@
                 const playlist = data.playlist || [];
                 const currentIndex = data.currentIndex || 0;
 
-                // Renderizar menú lateral
                 const listEl = document.getElementById('queue-list');
                 listEl.innerHTML = "";
 
-                playlist.forEach((url, idx) => {
+                playlist.forEach((item, idx) => {
                     let div = document.createElement('div');
                     div.className = `queue-item ${idx === currentIndex ? 'active' : ''}`;
                     div.onclick = () => selectItem(idx);
-                    div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${url}</span>`;
+                    div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${item}</span>`;
                     listEl.appendChild(div);
                 });
 
                 if (playlist.length === 0) return;
 
-                const targetURL = playlist[currentIndex];
-                if (targetURL && targetURL !== currentURL) {
-                    currentURL = targetURL;
-                    document.getElementById('media-container').innerHTML = `<iframe src="${currentURL}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+                const targetItem = playlist[currentIndex];
+                if (targetItem && targetItem !== currentURL) {
+                    currentURL = targetItem;
+                    loadMedia(currentURL);
                 }
             });
+        }
+
+        function loadMedia(item) {
+            const container = document.getElementById('media-container');
+            
+            // Si es un video de YouTube, usamos el reproductor embebido con detección de fin (ENDED)
+            if (item.startsWith("YT:")) {
+                let videoId = item.replace("YT:", "");
+                container.innerHTML = '<div id="yt-player"></div>';
+                
+                ytPlayer = new YT.Player('yt-player', {
+                    videoId: videoId,
+                    playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'enablejsapi': 1 },
+                    events: {
+                        'onStateChange': (event) => {
+                            // Si el estado es 0 (ENDED / Terminado), avanza automáticamente al siguiente
+                            if (event.data === 0) {
+                                nextVideo();
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Para Twitch, Spotify, SoundCloud u otras webs
+                container.innerHTML = `<iframe src="${item}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+            }
         }
     </script>
 </body>
