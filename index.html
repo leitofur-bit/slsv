@@ -213,7 +213,7 @@
     </div>
 
     <div id="controls">
-        <input type="text" id="urlInput" placeholder="Pega link de YouTube, Twitch, Spotify..." />
+        <input type="text" id="urlInput" placeholder="Pega link de YouTube, Spotify, SoundCloud..." />
         <button class="btn" onclick="addToQueue()">Agregar</button>
     </div>
 
@@ -260,31 +260,36 @@
             if (!input) return "";
             input = input.trim();
 
+            // 1. YouTube
             let ytMatch = input.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
             if (ytMatch && ytMatch[1]) {
                 return "YT:" + ytMatch[1];
             }
 
-            let twitchMatch = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
-            if (twitchMatch && twitchMatch[1]) {
-                let domain = window.location.hostname || "localhost";
-                return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${domain}&autoplay=true`;
-            }
-
+            // 2. Vimeo
             let vimeoMatch = input.match(/vimeo\.com\/(\d+)/);
             if (vimeoMatch && vimeoMatch[1]) {
                 return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
             }
 
+            // 3. Spotify
             let spotifyMatch = input.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
             if (spotifyMatch) {
                 return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
             }
             
+            // 4. SoundCloud
             if (input.includes("soundcloud.com")) {
                 return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
             }
 
+            // 5. Twitch (Bloqueado por seguridad en Iframe)
+            if (input.includes("twitch.tv")) {
+                alert("Twitch bloquea la reproducción directa por seguridad. Usa YouTube, Spotify o SoundCloud.");
+                return "";
+            }
+
+            // 6. Páginas web generales
             if (input.startsWith("http://") || input.startsWith("https://")) {
                 return input;
             }
@@ -297,7 +302,6 @@
             let embedUrl = parseEmbedURL(val);
 
             if (!embedUrl) {
-                alert("Enlace no compatible o inválido.");
                 return;
             }
 
@@ -314,14 +318,14 @@
             });
         }
 
-        // Cuando termina un video, lo borramos de la lista (shift) para que no se sature
+        // Elimina el video actual al terminar o al darle a siguiente
         function nextVideo() {
             dbRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data || !data.playlist || data.playlist.length === 0) return;
                 
                 let playlist = data.playlist;
-                playlist.shift(); // Elimina el primer elemento (el video que acaba de terminar)
+                playlist.shift(); // Borra el primero de la lista
 
                 dbRef.set({ 
                     playlist: playlist 
@@ -330,8 +334,14 @@
         }
 
         function selectItem(index) {
-            // Si el usuario salta manualmente, podemos recortar lo anterior si se desea, o simplemente mantener la lista
-            dbRef.update({ currentIndex: index });
+            dbRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data || !data.playlist) return;
+                let playlist = data.playlist;
+                // Si hacen clic en uno de la lista, cortamos los anteriores para saltar directo
+                let newPlaylist = playlist.slice(index);
+                dbRef.set({ playlist: newPlaylist });
+            });
         }
 
         function clearQueue() {
@@ -353,25 +363,21 @@
                 playlist.forEach((item, idx) => {
                     let div = document.createElement('div');
                     div.className = `queue-item ${idx === 0 ? 'active' : ''}`;
-                    div.onclick = () => {
-                        // Opcional: si hace clic en uno adelantado, borra los anteriores
-                        let newPlaylist = playlist.slice(idx);
-                        dbRef.set({ playlist: newPlaylist });
-                    };
+                    div.onclick = () => selectItem(idx);
                     div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${item}</span>`;
                     listEl.appendChild(div);
                 });
 
                 const container = document.getElementById('media-container');
 
-                // Si la cola está vacía, "apagamos" la pantalla (pantalla negra)
+                // Si la cola está vacía, pantalla completamente apagada/en espera
                 if (playlist.length === 0) {
                     currentURL = "";
                     container.innerHTML = "Pantalla en espera...";
                     return;
                 }
 
-                // Siempre reproducimos el primer elemento de la lista
+                // Reproduce siempre el primer elemento de la cola
                 const targetItem = playlist[0];
                 if (targetItem && targetItem !== currentURL) {
                     currentURL = targetItem;
@@ -392,7 +398,7 @@
                     playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'enablejsapi': 1 },
                     events: {
                         'onStateChange': (event) => {
-                            // Cuando el video de YouTube termina (estado 0), se borra solo y pasa al siguiente
+                            // Cuando termina el video de YouTube, se auto-elimina y pasa al siguiente
                             if (event.data === 0) {
                                 nextVideo();
                             }
