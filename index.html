@@ -8,7 +8,7 @@
         body { 
             margin: 0; 
             padding: 0; 
-            background: #000000; /* Pantalla totalmente negra al inicio */
+            background: #000000; 
             overflow: hidden; 
             width: 100vw; 
             height: 100vh; 
@@ -213,7 +213,7 @@
     </div>
 
     <div id="controls">
-        <input type="text" id="urlInput" placeholder="Pega link de YouTube, Spotify, SoundCloud..." />
+        <input type="text" id="urlInput" placeholder="Pega link de YouTube, Twitch, Spotify..." />
         <button class="btn" onclick="addToQueue()">Agregar</button>
     </div>
 
@@ -266,27 +266,28 @@
                 return "YT:" + ytMatch[1];
             }
 
-            // 2. Vimeo
+            // 2. Twitch (Soporte oficial usando el dominio actual para evitar bloqueos)
+            let twitchMatch = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
+            if (twitchMatch && twitchMatch[1]) {
+                let currentDomain = window.location.hostname || "localhost";
+                return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${currentDomain}&autoplay=true`;
+            }
+
+            // 3. Vimeo
             let vimeoMatch = input.match(/vimeo\.com\/(\d+)/);
             if (vimeoMatch && vimeoMatch[1]) {
                 return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
             }
 
-            // 3. Spotify
+            // 4. Spotify
             let spotifyMatch = input.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
             if (spotifyMatch) {
                 return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
             }
             
-            // 4. SoundCloud
+            // 5. SoundCloud
             if (input.includes("soundcloud.com")) {
                 return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
-            }
-
-            // 5. Twitch (Bloqueado por seguridad en Iframe)
-            if (input.includes("twitch.tv")) {
-                alert("Twitch bloquea la reproducción directa por seguridad. Usa YouTube, Spotify o SoundCloud.");
-                return "";
             }
 
             // 6. Páginas web generales
@@ -302,6 +303,7 @@
             let embedUrl = parseEmbedURL(val);
 
             if (!embedUrl) {
+                alert("Enlace no compatible o inválido.");
                 return;
             }
 
@@ -318,14 +320,13 @@
             });
         }
 
-        // Elimina el video actual al terminar o al darle a siguiente
         function nextVideo() {
             dbRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data || !data.playlist || data.playlist.length === 0) return;
                 
                 let playlist = data.playlist;
-                playlist.shift(); // Borra el primero de la lista
+                playlist.shift(); 
 
                 dbRef.set({ 
                     playlist: playlist 
@@ -338,7 +339,6 @@
                 const data = snapshot.val();
                 if (!data || !data.playlist) return;
                 let playlist = data.playlist;
-                // Si hacen clic en uno de la lista, cortamos los anteriores para saltar directo
                 let newPlaylist = playlist.slice(index);
                 dbRef.set({ playlist: newPlaylist });
             });
@@ -370,14 +370,12 @@
 
                 const container = document.getElementById('media-container');
 
-                // Si la cola está vacía, pantalla completamente apagada/en espera
                 if (playlist.length === 0) {
                     currentURL = "";
                     container.innerHTML = "Pantalla en espera...";
                     return;
                 }
 
-                // Reproduce siempre el primer elemento de la cola
                 const targetItem = playlist[0];
                 if (targetItem && targetItem !== currentURL) {
                     currentURL = targetItem;
@@ -390,7 +388,7 @@
             const container = document.getElementById('media-container');
             
             if (item.startsWith("YT:")) {
-                let videoId = item.replace("YT:", "");
+                let videoId = item.replace("YT:", "",);
                 container.innerHTML = '<div id="yt-player"></div>';
                 
                 ytPlayer = new YT.Player('yt-player', {
@@ -398,7 +396,6 @@
                     playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'enablejsapi': 1 },
                     events: {
                         'onStateChange': (event) => {
-                            // Cuando termina el video de YouTube, se auto-elimina y pasa al siguiente
                             if (event.data === 0) {
                                 nextVideo();
                             }
