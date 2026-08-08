@@ -266,21 +266,22 @@
                 return "YT:" + ytMatch[1];
             }
 
-            // 2. Facebook Videos (Limpieza y normalización de URL)
+            // 2. Facebook Videos (Normalización estricta de Reels, Watch y URLs)
             if (input.includes("facebook.com") || input.includes("fb.watch")) {
-                let cleanUrl = input;
-                
-                if (cleanUrl.includes("?")) {
-                    let parts = cleanUrl.split("?");
-                    let urlParams = new URLSearchParams(parts[1]);
-                    if (urlParams.has("v")) {
-                        cleanUrl = parts[0] + "?v=" + urlParams.get("v");
+                let targetUrl = input;
+
+                try {
+                    let urlObj = new URL(input);
+                    if (urlObj.searchParams.has("v")) {
+                        targetUrl = `https://www.facebook.com/watch/?v=${urlObj.searchParams.get("v")}`;
                     } else {
-                        cleanUrl = parts[0];
+                        targetUrl = urlObj.origin + urlObj.pathname;
                     }
+                } catch (e) {
+                    targetUrl = input.split("?")[0];
                 }
-                
-                return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&autoplay=true`;
+
+                return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(targetUrl)}&show_text=false&autoplay=true`;
             }
 
             // 3. Twitch (Soporte oficial usando el dominio actual)
