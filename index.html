@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL Universal TV - Dual Mode (Base + Queue)</title>
+    <title>SL Universal TV - Dual Mode</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -92,9 +92,22 @@
             color: #fff; font-size: 12px; border: 1px solid transparent; word-break: break-all;
         }
         
-        .queue-item.clickable { cursor: pointer; }
+        .queue-item.clickable { cursor: pointer; transition: background 0.2s; }
         .queue-item.clickable:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.5); }
         .queue-item.active { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
+
+        /* ESTILOS DEL ACORDEÓN MODIFICADO */
+        .accordion-content {
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .accordion-content.open { max-height: 250px; overflow-y: auto; margin-top: 8px; }
+        .track-item {
+            padding: 8px 10px; background: rgba(0,0,0,0.4); border-radius: 6px; 
+            font-size: 11px; cursor: pointer; color: #ccc; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .track-item:hover { background: rgba(59, 130, 246, 0.4); color: white; }
+        .track-item.active { background: rgba(59, 130, 246, 0.8); color: white; border-color: #3b82f6;}
 
         #overlay { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; 
@@ -132,7 +145,7 @@
         <!-- SECCIÓN 2: COLA DE USUARIOS -->
         <div class="section-title">2. Cola de Usuarios</div>
         <div class="input-group">
-            <input type="text" id="sidebarUrlInput" class="input-text" placeholder="Pega link de YT, FB, Twitch, Spotify..." />
+            <input type="text" id="sidebarUrlInput" class="input-text" placeholder="Pega link de YT, FB, Twitch..." />
             <button class="btn" onclick="addToQueue('sidebarUrlInput')">Añadir</button>
         </div>
         <div id="queue-list"></div>
@@ -162,10 +175,11 @@
         const dbRef = firebase.database().ref('tv');
 
         var isActivated = false;
-        var activePlayType = ""; // Puede ser "BASE" o "QUEUE"
+        var activePlayType = ""; 
         var currentItem = "";
         var currentYtIndex = 0;
         var ytPlayer = null;
+        var ytPlaylistArray = []; 
 
         function activatePlayer() {
             isActivated = true;
@@ -175,6 +189,20 @@
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function toggleAccordion() {
+            const content = document.getElementById('accordion-content');
+            const icon = document.getElementById('accordion-icon');
+            if (content && icon) {
+                if (content.classList.contains('open')) {
+                    content.classList.remove('open');
+                    icon.innerText = "▼";
+                } else {
+                    content.classList.add('open');
+                    icon.innerText = "▲";
+                }
+            }
         }
 
         function initUIControls() {
@@ -195,49 +223,38 @@
         function parseEmbedURL(input) {
             if (!input) return "";
             input = input.trim();
-
             let ytMatch = input.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
             if (ytMatch && ytMatch[1]) return "YT:" + ytMatch[1];
-
             if (input.includes("facebook.com") || input.includes("fb.watch")) {
                 let targetUrl = input;
                 try {
                     let urlObj = new URL(input);
-                    if (urlObj.searchParams.has("v")) {
-                        targetUrl = `https://www.facebook.com/watch/?v=${urlObj.searchParams.get("v")}`;
-                    } else targetUrl = urlObj.origin + urlObj.pathname;
+                    if (urlObj.searchParams.has("v")) targetUrl = `https://www.facebook.com/watch/?v=${urlObj.searchParams.get("v")}`;
+                    else targetUrl = urlObj.origin + urlObj.pathname;
                 } catch (e) { targetUrl = input.split("?")[0]; }
                 return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(targetUrl)}&show_text=false&autoplay=true`;
             }
-
             let twitchMatch = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
             if (twitchMatch && twitchMatch[1]) {
                 let currentDomain = window.location.hostname || "localhost";
                 return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${currentDomain}&autoplay=true`;
             }
-
             let vimeoMatch = input.match(/vimeo\.com\/(\d+)/);
             if (vimeoMatch && vimeoMatch[1]) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
-
             let spotifyMatch = input.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
             if (spotifyMatch) return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
-            
             if (input.includes("soundcloud.com")) return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
-            
             if (input.startsWith("http://") || input.startsWith("https://")) return input;
-
             return "";
         }
 
-        // ====== GESTIÓN DE LA PLAYLIST PRINCIPAL ======
         function setBasePlaylist() {
             let val = document.getElementById('baseInput').value;
             let match = val.match(/[?&]list=([^#\&\?]+)/);
             if(match && match[1]) {
+                ytPlaylistArray = []; 
                 dbRef.update({
-                    basePlaylistId: match[1],
-                    basePlaylistIndex: 0,
-                    baseFinished: false
+                    basePlaylistId: match[1], basePlaylistIndex: 0, baseFinished: false
                 });
                 document.getElementById('baseInput').value = "";
             } else {
@@ -259,15 +276,10 @@
             });
         }
 
-        // ====== GESTIÓN DE LA COLA DE USUARIOS ======
         function addToQueue(sourceId) {
             let inputEl = document.getElementById(sourceId);
             let embedUrl = parseEmbedURL(inputEl.value);
-
-            if (!embedUrl) {
-                alert("Enlace no compatible o inválido.");
-                return;
-            }
+            if (!embedUrl) { alert("Enlace no compatible o inválido."); return; }
 
             dbRef.child('playlist').transaction((playlist) => {
                 if (!playlist) playlist = [];
@@ -288,13 +300,17 @@
         function selectQueueItem(index) {
             dbRef.transaction(data => {
                 if (!data) return data;
-                data.baseFinished = true; // Si el usuario fuerza la cola, damos por finalizada la playlist base
+                data.baseFinished = true; 
                 if (data.playlist) data.playlist = data.playlist.slice(index);
                 return data;
             });
         }
 
-        // ====== CONTROL GENERAL ======
+        function clearAll() {
+            ytPlaylistArray = [];
+            dbRef.set({ basePlaylistId: "", basePlaylistIndex: 0, baseFinished: false, playlist: [] });
+        }
+
         function nextVideoUI() {
             if (activePlayType === "BASE" && ytPlayer && ytPlayer.getPlaylist) {
                 let cIdx = ytPlayer.getPlaylistIndex();
@@ -306,13 +322,54 @@
             }
         }
 
-        function clearAll() {
-            dbRef.set({
-                basePlaylistId: "",
-                basePlaylistIndex: 0,
-                baseFinished: false,
-                playlist: []
-            });
+        function renderBaseInfoUI(data) {
+            let baseHtml = "";
+            let isAcOpen = document.getElementById('accordion-content') && document.getElementById('accordion-content').classList.contains('open');
+            let arrowIcon = isAcOpen ? "▲" : "▼";
+
+            if (data.basePlaylistId && !data.baseFinished) {
+                let currentIdx = data.basePlaylistIndex || 0;
+                
+                // Recuadro principal clickeable
+                baseHtml = `
+                <div class="queue-item active clickable" style="display: flex; justify-content: space-between; align-items: center;" onclick="toggleAccordion()">
+                    <div>
+                        <b>📺 Reproduciendo Lista Base</b><br>
+                        <span style="font-size:10px; color:#9ca3af; word-break:break-all;">ID: ${data.basePlaylistId}</span><br>
+                        Sincronizando Video #${currentIdx + 1}
+                    </div>
+                    <div id="accordion-icon" style="font-size: 14px; color: #fff; margin-left: 10px;">${arrowIcon}</div>
+                </div>`;
+                
+                if (ytPlaylistArray && ytPlaylistArray.length > 0) {
+                    let tracksHtml = "";
+                    ytPlaylistArray.forEach((trackId, index) => {
+                        let isCurrent = (index === currentIdx) ? "active" : "";
+                        // event.stopPropagation() evita que al hacer clic en una pista se cierre el acordeón de golpe
+                        tracksHtml += `<div class="track-item ${isCurrent}" onclick="nextBaseVideo(${index}); event.stopPropagation();">Pista ${index + 1}</div>`;
+                    });
+
+                    baseHtml += `
+                        <div id="accordion-content" class="accordion-content ${isAcOpen ? "open" : ""}">
+                            ${tracksHtml}
+                        </div>
+                    `;
+                } else {
+                     baseHtml += `
+                        <div id="accordion-content" class="accordion-content ${isAcOpen ? "open" : ""}">
+                            <div style="font-size:10px; margin-top:5px; color:#9ca3af; padding: 5px;">Cargando pistas de la lista...</div>
+                        </div>
+                    `;
+                }
+            } else if (data.baseFinished) {
+                baseHtml = `<div class="queue-item" style="border-left: 3px solid #ef4444; opacity: 0.6;">
+                    <b>✅ Lista Base Finalizada</b><br>
+                    <span style="font-size:10px;">Transfiriendo a la Cola de Usuarios...</span>
+                </div>`;
+            } else {
+                baseHtml = `<div class="queue-item" style="opacity: 0.4;">Ninguna lista asignada</div>`;
+            }
+            document.getElementById('base-info').innerHTML = baseHtml;
         }
 
         function listenFirebase() {
@@ -320,101 +377,83 @@
                 const data = snapshot.val() || {};
                 if (!isActivated) return;
 
-                // 1. DIBUJAR UI: SECCIÓN PLAYLIST BASE
-                let baseHtml = "";
-                if (data.basePlaylistId && !data.baseFinished) {
-                    baseHtml = `<div class="queue-item active">
-                        <b>📺 Reproduciendo Lista Base</b><br>
-                        <span style="font-size:10px; color:#9ca3af;">ID: ${data.basePlaylistId}</span><br>
-                        Sincronizando Video #${(data.basePlaylistIndex || 0) + 1}
-                    </div>`;
-                } else if (data.baseFinished) {
-                    baseHtml = `<div class="queue-item" style="border-left: 3px solid #ef4444; opacity: 0.6;">
-                        <b>✅ Lista Base Finalizada</b><br>
-                        <span style="font-size:10px;">Transfiriendo a la Cola de Usuarios...</span>
-                    </div>`;
-                } else {
-                    baseHtml = `<div class="queue-item" style="opacity: 0.4;">Ninguna lista base asignada</div>`;
-                }
-                document.getElementById('base-info').innerHTML = baseHtml;
+                renderBaseInfoUI(data);
 
-                // 2. DIBUJAR UI: SECCIÓN COLA
                 const playlist = data.playlist || [];
                 const listEl = document.getElementById('queue-list');
                 listEl.innerHTML = "";
                 playlist.forEach((item, idx) => {
-                    let div = document.createElement('div');
                     let isActive = (idx === 0 && data.baseFinished === true) || (idx === 0 && !data.basePlaylistId);
+                    let div = document.createElement('div');
                     div.className = `queue-item clickable ${isActive ? 'active' : ''}`;
                     div.onclick = () => selectQueueItem(idx);
                     div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${item}</span>`;
                     listEl.appendChild(div);
                 });
 
-                // 3. DETERMINAR QUÉ REPRODUCIR (LA CASCADA)
                 let targetType = "";
                 let targetItem = "";
                 let targetIndex = 0;
 
                 if (data.basePlaylistId && !data.baseFinished) {
-                    targetType = "BASE";
-                    targetItem = data.basePlaylistId;
-                    targetIndex = data.basePlaylistIndex || 0;
+                    targetType = "BASE"; targetItem = data.basePlaylistId; targetIndex = data.basePlaylistIndex || 0;
                 } else if (playlist.length > 0) {
-                    targetType = "QUEUE";
-                    targetItem = playlist[0];
+                    targetType = "QUEUE"; targetItem = playlist[0];
                 }
 
                 if (!targetType) {
-                    activePlayType = "";
-                    currentItem = "";
+                    activePlayType = ""; currentItem = "";
                     document.getElementById('media-container').innerHTML = "Pantalla en espera... (Vacío)";
                     return;
                 }
 
-                // 4. APLICAR CAMBIOS AL REPRODUCTOR
                 if (targetType !== activePlayType || targetItem !== currentItem) {
-                    // Cambio drástico: nueva plataforma, o paso de Base a Queue
-                    activePlayType = targetType;
-                    currentItem = targetItem;
-                    currentYtIndex = targetIndex;
-                    loadMedia(targetType, currentItem, currentYtIndex);
+                    activePlayType = targetType; currentItem = targetItem; currentYtIndex = targetIndex;
+                    loadMedia(targetType, currentItem, currentYtIndex, data);
                 } else if (targetType === "BASE" && targetIndex !== currentYtIndex) {
-                    // Sigue la misma lista base, pero avanzó de índice
                     currentYtIndex = targetIndex;
-                    if (ytPlayer && typeof ytPlayer.playVideoAt === 'function') {
-                        ytPlayer.playVideoAt(currentYtIndex);
-                    } else {
-                        loadMedia(targetType, currentItem, currentYtIndex);
-                    }
+                    if (ytPlayer && typeof ytPlayer.playVideoAt === 'function') ytPlayer.playVideoAt(currentYtIndex);
+                    else loadMedia(targetType, currentItem, currentYtIndex, data);
                 }
             });
         }
 
-        function loadMedia(type, item, index) {
+        function loadMedia(type, item, index, firebaseData) {
             const container = document.getElementById('media-container');
             
             if (type === "BASE") {
                 container.innerHTML = '<div id="yt-player"></div>';
                 ytPlayer = new YT.Player('yt-player', {
                     playerVars: { 
-                        listType: 'playlist',
-                        list: item,
-                        index: index,
-                        autoplay: 1, controls: 1, rel: 0, enablejsapi: 1,
-                        origin: window.location.origin
+                        listType: 'playlist', list: item, index: index,
+                        autoplay: 1, controls: 1, rel: 0, enablejsapi: 1, origin: window.location.origin
                     },
                     events: {
+                        'onReady': (event) => {
+                            setTimeout(() => {
+                                let arr = event.target.getPlaylist();
+                                if (arr && arr.length > 0) {
+                                    ytPlaylistArray = arr;
+                                    renderBaseInfoUI(firebaseData); 
+                                }
+                            }, 2000);
+                        },
                         'onStateChange': (event) => {
-                            if (event.data === 0) { // El video termina
+                            if (ytPlaylistArray.length === 0) {
+                                let arr = event.target.getPlaylist();
+                                if (arr && arr.length > 0) {
+                                    ytPlaylistArray = arr;
+                                    renderBaseInfoUI(firebaseData);
+                                }
+                            }
+                            if (event.data === 0) { 
                                 let cIdx = event.target.getPlaylistIndex();
                                 let arr = event.target.getPlaylist();
-                                if (arr && cIdx >= arr.length - 1) finishBasePlaylist(); // Llegó al final de la playlist
-                                else nextBaseVideo(cIdx + 1); // Pasa al siguiente
+                                if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
+                                else nextBaseVideo(cIdx + 1);
                             }
                         },
                         'onError': (event) => {
-                            // Salto de seguridad si un video fue borrado o bloqueado
                             let cIdx = event.target.getPlaylistIndex();
                             let arr = event.target.getPlaylist();
                             if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
@@ -428,15 +467,8 @@
                     container.innerHTML = '<div id="yt-player"></div>';
                     ytPlayer = new YT.Player('yt-player', {
                         videoId: videoId,
-                        playerVars: { 
-                            autoplay: 1, controls: 1, rel: 0, enablejsapi: 1,
-                            origin: window.location.origin
-                        },
-                        events: {
-                            'onStateChange': (event) => {
-                                if (event.data === 0) nextQueueItem();
-                            }
-                        }
+                        playerVars: { autoplay: 1, controls: 1, rel: 0, enablejsapi: 1, origin: window.location.origin },
+                        events: { 'onStateChange': (event) => { if (event.data === 0) nextQueueItem(); } }
                     });
                 } else {
                     container.innerHTML = `<iframe src="${item}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; microphone; camera" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
