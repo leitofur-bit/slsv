@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL Universal TV - Dual Mode</title>
+    <title>SL Universal TV - Multi Channel</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -96,7 +96,6 @@
         .queue-item.clickable:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.5); }
         .queue-item.active { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
 
-        /* ESTILOS DEL ACORDEÓN MODIFICADO */
         .accordion-content {
             max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
             display: flex; flex-direction: column; gap: 4px;
@@ -121,7 +120,7 @@
 
     <div id="overlay" onclick="activatePlayer()">
         <h2>Haz clic aquí para activar la Pantalla</h2>
-        <p>Habilita el sonido y la sincronización</p>
+        <p id="channel-indicator">Habilita el sonido y la sincronización</p>
     </div>
     
     <div id="media-container">Pantalla en espera...</div>
@@ -130,7 +129,10 @@
 
     <div id="sidebar">
         <div class="sidebar-header">
-            <h3 style="margin: 0;">Gestión de Medios</h3>
+            <div>
+                <h3 style="margin: 0;">Gestión de Medios</h3>
+                <span id="channel-badge" style="font-size: 10px; color: #3b82f6; font-weight: 600;">CANAL: TV1</span>
+            </div>
             <button class="close-btn" onclick="toggleSidebar()">&times;</button>
         </div>
 
@@ -172,7 +174,14 @@
             databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com" 
         };
         firebase.initializeApp(firebaseConfig);
-        const dbRef = firebase.database().ref('tv');
+
+        // --- MANEJO DE MÚLTIPLES CANALES ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const channelName = urlParams.get('channel') || 'tv1'; // 'tv1' por defecto
+        const dbRef = firebase.database().ref(channelName);
+
+        // Actualizar indicador visual en el Sidebar
+        document.getElementById('channel-badge').innerText = "CANAL: " + channelName.toUpperCase();
 
         var isActivated = false;
         var activePlayType = ""; 
@@ -330,7 +339,6 @@
             if (data.basePlaylistId && !data.baseFinished) {
                 let currentIdx = data.basePlaylistIndex || 0;
                 
-                // Recuadro principal clickeable
                 baseHtml = `
                 <div class="queue-item active clickable" style="display: flex; justify-content: space-between; align-items: center;" onclick="toggleAccordion()">
                     <div>
@@ -345,7 +353,6 @@
                     let tracksHtml = "";
                     ytPlaylistArray.forEach((trackId, index) => {
                         let isCurrent = (index === currentIdx) ? "active" : "";
-                        // event.stopPropagation() evita que al hacer clic en una pista se cierre el acordeón de golpe
                         tracksHtml += `<div class="track-item ${isCurrent}" onclick="nextBaseVideo(${index}); event.stopPropagation();">Pista ${index + 1}</div>`;
                     });
 
