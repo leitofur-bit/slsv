@@ -9,7 +9,7 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: white; }
         #player-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #ui-container { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.8); z-index: 10; box-sizing: border-box; transition: transform 0.3s; }
+        #ui-container { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.85); z-index: 10; box-sizing: border-box; transition: transform 0.3s; }
         .hidden { transform: translateY(100%); }
         #toggle-ui { position: absolute; bottom: 10px; right: 10px; z-index: 20; background: #333; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px; opacity: 0.5; }
         #toggle-ui:hover { opacity: 1; }
@@ -24,9 +24,22 @@
         #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; align-items: center; justify-content: center; z-index: 50; cursor: pointer; font-size: 24px; font-weight: bold; }
         #overlay.hidden { display: none; }
         
-        .list-container { max-height: 150px; overflow-y: auto; background: #222; padding: 10px; border-radius: 4px; margin-top: 10px; }
-        .list-item { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #444; }
+        .list-container { max-height: 180px; overflow-y: auto; background: #222; padding: 10px; border-radius: 4px; margin-top: 10px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #444; font-size: 13px; }
         .list-item:hover { background: #333; }
+
+        /* Estilos nuevos para miniaturas y acordeón elegante */
+        .video-thumb-title { display: flex; align-items: center; cursor: pointer; flex: 1; overflow: hidden; text-align: left; background: none; border: none; color: white; padding: 0; }
+        .video-thumb-title img { width: 50px; height: 30px; object-fit: cover; border-radius: 3px; margin-right: 8px; flex-shrink: 0; }
+        .video-thumb-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .playlist-active-container { background: #222; border-radius: 4px; margin-top: 10px; overflow: hidden; font-family: sans-serif; border: 1px solid #444; }
+        .playlist-active-header { padding: 10px 12px; background: #2a2a2a; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; }
+        .playlist-active-header:hover { background: #333; }
+        .playlist-active-header::after { content: '▼'; font-size: 10px; transition: transform 0.3s; margin-left: 10px; }
+        .playlist-active-container.open .playlist-active-header::after { transform: rotate(180deg); }
+        .playlist-items-list { max-height: 0; overflow-y: auto; transition: max-height 0.3s ease-out; background: #1a1a1a; }
+        .playlist-active-container.open .playlist-items-list { max-height: 184px; }
         
         .channel-info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; font-size: 12px; }
     </style>
@@ -104,11 +117,8 @@ function toggleUI() {
 
 function onPlayerReady(event) {
     isPlayerReady = true;
-    
-    // Aplicar el volumen inicial según el slider
     const volInicial = document.getElementById('volSlider').value;
     ytPlayer.setVolume(volInicial);
-    
     listenFirebase();
 }
 
@@ -201,7 +211,6 @@ function forzarSincronizacion() {
 // ================= CONTROL DE VOLUMEN LOCAL =================
 function cambiarVolumen() {
     const vol = document.getElementById('volSlider').value;
-    
     if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
         ytPlayer.setVolume(vol);
     }
@@ -232,6 +241,7 @@ function setBasePlaylist() {
             tiempoInicio: Date.now() 
         });
     }
+    document.getElementById('basePlaylistInput').value = '';
 }
 
 function nextBaseVideo(newIndex) {
@@ -288,7 +298,7 @@ function selectQueueItem(index) {
     });
 }
 
-// ================= PARSER DE URLS =================
+// ================= PARSER Y EXTRACCIÓN DE ID =================
 function parseEmbedURL(url) {
     let match;
     match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
@@ -300,26 +310,88 @@ function parseEmbedURL(url) {
     return { type: 'iframe', url: url };
 }
 
-// ================= ACTUALIZACIÓN DE UI =================
+// Función auxiliar para extraer ID de video de YouTube y mostrar miniatura limpia en la lista
+function extraerInfoYoutube(url) {
+    let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+    if (match) {
+        let vidId = match[1];
+        return {
+            thumb: `https://img.youtube.com/vi/${vidId}/mqdefault.jpg`,
+            title: url // Se muestra la URL de forma limpia o se acorta
+        };
+    }
+    return {
+        thumb: 'https://via.placeholder.com/50x30?text=Web',
+        title: url
+    };
+}
+
+function toggleAcordeonPlaylist() {
+    const acordeon = document.getElementById('acordeonPlaylist');
+    if (acordeon) acordeon.classList.toggle('open');
+}
+
+// ================= ACTUALIZACIÓN DE UI CON DISEÑO VISUAL =================
 function updateUI(data) {
+    // 1. Renderizar Lista de Videos (Cola)
     const queueList = document.getElementById('queueList');
     queueList.innerHTML = '';
-    if (data.playlist) {
+    if (data.playlist && data.playlist.length > 0) {
         data.playlist.forEach((item, idx) => {
+            let info = extraerInfoYoutube(item);
             queueList.innerHTML += `
                 <div class="list-item">
-                    <span style="cursor:pointer" onclick="selectQueueItem(${idx})">${idx + 1}. ${item.substring(0,40)}...</span>
-                    <button class="btn btn-danger" onclick="removeQueueItem(${idx})">X</button>
+                    <button class="video-thumb-title" onclick="selectQueueItem(${idx})">
+                        <img src="${info.thumb}" alt="Miniatura">
+                        <span>${idx + 1}. ${info.title}</span>
+                    </button>
+                    <button class="btn btn-danger" onclick="removeQueueItem(${idx})" style="padding: 2px 6px; font-size:11px;">X</button>
                 </div>
             `;
         });
+    } else {
+        queueList.innerHTML = '<div style="padding: 5px; font-size: 12px; color: #888;">La lista está vacía.</div>';
     }
 
+    // 2. Renderizar Playlist Activa con Acordeón y Miniaturas integradas
     const baseList = document.getElementById('baseList');
     if (data.basePlaylistId) {
-        baseList.innerHTML = `<div class="list-item">Playlist Activa: ${data.basePlaylistId} (Índice: ${data.basePlaylistIndex || 0})</div>`;
+        let indiceActual = data.basePlaylistIndex || 0;
+        
+        // Generamos dinámicamente el contenido desplegable simulando los elementos de la lista base
+        let itemsSimuladosHtml = '';
+        if (ytPlayer && typeof ytPlayer.getPlaylist === 'function') {
+            let playlistIds = ytPlayer.getPlaylist();
+            if (playlistIds && playlistIds.length > 0) {
+                playlistIds.forEach((vId, i) => {
+                    itemsSimuladosHtml += `
+                        <div class="list-item" style="border-bottom: 1px solid #222;">
+                            <div class="video-thumb-title" style="cursor:default;">
+                                <img src="https://img.youtube.com/vi/${vId}/mqdefault.jpg" alt="Mini">
+                                <span style="${i === indiceActual ? 'color: #3b82f6; font-weight: bold;' : ''}">[${i}] Video ID: ${vId}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                itemsSimuladosHtml = `<div style="padding: 8px; font-size: 12px; color: #aaa;">Reproduciendo desde YouTube (Índice actual: ${indiceActual})</div>`;
+            }
+        } else {
+            itemsSimuladosHtml = `<div style="padding: 8px; font-size: 12px; color: #aaa;">Playlist ID: ${data.basePlaylistId} (Índice: ${indiceActual})</div>`;
+        }
+
+        baseList.innerHTML = `
+            <div class="playlist-active-container" id="acordeonPlaylist">
+                <div class="playlist-active-header" onclick="toggleAcordeonPlaylist()">
+                    <span>Playlist Activa (Índice: ${indiceActual})</span>
+                </div>
+                <div class="playlist-items-list">
+                    ${itemsSimuladosHtml}
+                </div>
+            </div>
+        `;
     } else {
-        baseList.innerHTML = 'Playlist no configurada.';
+        baseList.innerHTML = '<div style="font-size: 13px; color: #888;">Playlist no configurada.</div>';
     }
 }
 </script>
