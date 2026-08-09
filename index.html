@@ -2,486 +2,326 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL Universal TV - Multi Channel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>SL TV - Multi Channel</title>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { 
-            margin: 0; padding: 0; background: #000000; overflow: hidden; 
-            width: 100vw; height: 100vh; font-family: 'Poppins', sans-serif; cursor: default;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: white; }
+        #player-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #ui-container { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.8); z-index: 10; box-sizing: border-box; transition: transform 0.3s; }
+        .hidden { transform: translateY(100%); }
+        #toggle-ui { position: absolute; bottom: 10px; right: 10px; z-index: 20; background: #333; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px; opacity: 0.5; }
+        #toggle-ui:hover { opacity: 1; }
+        input, button { padding: 8px; margin: 2px; font-size: 14px; }
+        .btn { cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; }
+        .btn:hover { background: #555; }
+        .btn-danger { background: #d32f2f; }
+        .btn-danger:hover { background: #b71c1c; }
+        .btn-sync { background: #3b82f6; font-weight: bold; }
+        .btn-sync:hover { background: #2563eb; }
         
-        #media-container { 
-            width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; 
-            display: flex; align-items: center; justify-content: center;
-            color: rgba(255, 255, 255, 0.2); font-size: 18px;
-        }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; align-items: center; justify-content: center; z-index: 50; cursor: pointer; font-size: 24px; font-weight: bold; }
+        #overlay.hidden { display: none; }
         
-        #media-container iframe { 
-            width: 100% !important; height: 100% !important; position: absolute; top: 0; left: 0; border: none;
-        }
+        .list-container { max-height: 150px; overflow-y: auto; background: #222; padding: 10px; border-radius: 4px; margin-top: 10px; }
+        .list-item { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #444; }
+        .list-item:hover { background: #333; }
         
-        #controls { 
-            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 10; 
-            background: rgba(18, 18, 20, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            padding: 12px 20px; border-radius: 14px; display: flex; gap: 10px; align-items: center; 
-            border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
-            opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
-            transform: translateX(-50%) translateY(10px);
-        }
-
-        #controls.visible {
-            opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
-        }
-
-        .input-text { 
-            padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); 
-            background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 14px; font-family: 'Poppins', sans-serif; outline: none; 
-        }
-
-        #controls .input-text { width: 280px; }
-        .input-text:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
-
-        .btn { 
-            padding: 10px 14px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
-            color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; 
-            font-size: 13px; font-family: 'Poppins', sans-serif; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-            transition: all 0.2s ease;
-        }
-
-        .btn:hover { background: linear-gradient(135deg, #60a5fa, #2563eb); transform: translateY(-1px); }
-
-        #playlist-toggle {
-            position: absolute; top: 25px; right: 25px; z-index: 15;
-            background: rgba(18, 18, 20, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #fff; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-family: 'Poppins', sans-serif;
-            font-weight: 600; font-size: 13px;
-        }
-
-        #sidebar {
-            position: absolute; top: 0; right: -340px; width: 340px; height: 100vh;
-            background: rgba(12, 12, 15, 0.95); backdrop-filter: blur(16px); z-index: 25;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.7); border-left: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex; flex-direction: column; transition: right 0.4s cubic-bezier(0.1, 1, 0.1, 1);
-            padding: 20px; box-sizing: border-box;
-        }
-
-        #sidebar.open { right: 0; }
-
-        .sidebar-header {
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; margin-bottom: 15px; color: #fff;
-        }
-
-        .close-btn { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; }
-
-        .section-title {
-            font-size: 11px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;
-            margin-bottom: 8px; font-weight: 600;
-        }
-
-        .input-group { display: flex; gap: 5px; margin-bottom: 10px; }
-        .input-group .input-text { flex: 1; font-size: 12px; padding: 8px; }
-        .input-group .btn { padding: 8px 12px; font-size: 12px; }
-
-        #queue-list {
-            flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;
-        }
-
-        .queue-item {
-            background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px;
-            color: #fff; font-size: 12px; border: 1px solid transparent; word-break: break-all;
-        }
-        
-        .queue-item.clickable { cursor: pointer; transition: background 0.2s; }
-        .queue-item.clickable:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(59, 130, 246, 0.5); }
-        .queue-item.active { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
-
-        .accordion-content {
-            max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
-            display: flex; flex-direction: column; gap: 4px;
-        }
-        .accordion-content.open { max-height: 250px; overflow-y: auto; margin-top: 8px; }
-        .track-item {
-            padding: 8px 10px; background: rgba(0,0,0,0.4); border-radius: 6px; 
-            font-size: 11px; cursor: pointer; color: #ccc; border: 1px solid rgba(255,255,255,0.05);
-        }
-        .track-item:hover { background: rgba(59, 130, 246, 0.4); color: white; }
-        .track-item.active { background: rgba(59, 130, 246, 0.8); color: white; border-color: #3b82f6;}
-
-        #overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; 
-            background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(8px); color: #fff; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            cursor: pointer; text-align: center; 
-        }
+        .channel-info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div id="overlay" onclick="activatePlayer()">
-        <h2>Haz clic aquí para activar la Pantalla</h2>
-        <p id="channel-indicator">Habilita el sonido y la sincronización</p>
-    </div>
-    
-    <div id="media-container">Pantalla en espera...</div>
+    <div id="overlay" onclick="startInteraction()">Haz clic aquí para activar la Pantalla</div>
+    <div class="channel-info" id="channelDisplay">Canal: ...</div>
+    <div id="player-container"></div>
 
-    <button id="playlist-toggle" onclick="toggleSidebar()">📺 Menú y Listas</button>
+    <button id="toggle-ui" onclick="toggleUI()">UI</button>
 
-    <div id="sidebar">
-        <div class="sidebar-header">
-            <div>
-                <h3 style="margin: 0;">Gestión de Medios</h3>
-                <span id="channel-badge" style="font-size: 10px; color: #3b82f6; font-weight: 600;">CANAL: TV1</span>
-            </div>
-            <button class="close-btn" onclick="toggleSidebar()">&times;</button>
-        </div>
-
-        <!-- SECCIÓN 1: PLAYLIST BASE -->
-        <div class="section-title">1. Playlist Principal (YouTube)</div>
-        <div class="input-group">
-            <input type="text" id="baseInput" class="input-text" placeholder="Pega el link de YouTube Playlist..." />
-            <button class="btn" onclick="setBasePlaylist()">Fijar</button>
-        </div>
-        <div id="base-info" style="margin-bottom: 20px;"></div>
-
-        <!-- SECCIÓN 2: COLA DE USUARIOS -->
-        <div class="section-title">2. Cola de Usuarios</div>
-        <div class="input-group">
-            <input type="text" id="sidebarUrlInput" class="input-text" placeholder="Pega link de YT, FB, Twitch..." />
-            <button class="btn" onclick="addToQueue('sidebarUrlInput')">Añadir</button>
-        </div>
-        <div id="queue-list"></div>
-
-        <!-- CONTROLES GLOBALES -->
-        <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;">
-            <button class="btn" onclick="nextVideoUI()" style="flex: 1; background: #10b981;">Siguiente ⏭</button>
-            <button class="btn" onclick="clearAll()" style="flex: 1; background: #ef4444;">Limpiar Todo</button>
-        </div>
-    </div>
-
-    <!-- CONTROLES RÁPIDOS INFERIORES -->
-    <div id="controls">
-        <input type="text" id="floatingUrlInput" class="input-text" placeholder="Añadir rápido a la cola de usuarios..." />
-        <button class="btn" onclick="addToQueue('floatingUrlInput')">Agregar a Cola</button>
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
-
-    <script>
-        const firebaseConfig = {
-            databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com" 
-        };
-        firebase.initializeApp(firebaseConfig);
-
-        // --- MANEJO DE MÚLTIPLES CANALES ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const channelName = urlParams.get('channel') || 'tv1'; // 'tv1' por defecto
-        const dbRef = firebase.database().ref(channelName);
-
-        // Actualizar indicador visual en el Sidebar
-        document.getElementById('channel-badge').innerText = "CANAL: " + channelName.toUpperCase();
-
-        var isActivated = false;
-        var activePlayType = ""; 
-        var currentItem = "";
-        var currentYtIndex = 0;
-        var ytPlayer = null;
-        var ytPlaylistArray = []; 
-
-        function activatePlayer() {
-            isActivated = true;
-            document.getElementById('overlay').style.display = 'none';
-            listenFirebase();
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-        }
-
-        function toggleAccordion() {
-            const content = document.getElementById('accordion-content');
-            const icon = document.getElementById('accordion-icon');
-            if (content && icon) {
-                if (content.classList.contains('open')) {
-                    content.classList.remove('open');
-                    icon.innerText = "▼";
-                } else {
-                    content.classList.add('open');
-                    icon.innerText = "▲";
-                }
-            }
-        }
-
-        function initUIControls() {
-            const controls = document.getElementById('controls');
-            let hideTimeout;
-            window.addEventListener('mousemove', () => {
-                controls.classList.add('visible');
-                clearTimeout(hideTimeout);
-                hideTimeout = setTimeout(() => {
-                    if (!controls.matches(':hover') && document.activeElement !== document.getElementById('floatingUrlInput')) {
-                        controls.classList.remove('visible');
-                    }
-                }, 3500);
-            });
-        }
-        initUIControls();
-
-        function parseEmbedURL(input) {
-            if (!input) return "";
-            input = input.trim();
-            let ytMatch = input.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-            if (ytMatch && ytMatch[1]) return "YT:" + ytMatch[1];
-            if (input.includes("facebook.com") || input.includes("fb.watch")) {
-                let targetUrl = input;
-                try {
-                    let urlObj = new URL(input);
-                    if (urlObj.searchParams.has("v")) targetUrl = `https://www.facebook.com/watch/?v=${urlObj.searchParams.get("v")}`;
-                    else targetUrl = urlObj.origin + urlObj.pathname;
-                } catch (e) { targetUrl = input.split("?")[0]; }
-                return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(targetUrl)}&show_text=false&autoplay=true`;
-            }
-            let twitchMatch = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
-            if (twitchMatch && twitchMatch[1]) {
-                let currentDomain = window.location.hostname || "localhost";
-                return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${currentDomain}&autoplay=true`;
-            }
-            let vimeoMatch = input.match(/vimeo\.com\/(\d+)/);
-            if (vimeoMatch && vimeoMatch[1]) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
-            let spotifyMatch = input.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
-            if (spotifyMatch) return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
-            if (input.includes("soundcloud.com")) return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}&auto_play=true`;
-            if (input.startsWith("http://") || input.startsWith("https://")) return input;
-            return "";
-        }
-
-        function setBasePlaylist() {
-            let val = document.getElementById('baseInput').value;
-            let match = val.match(/[?&]list=([^#\&\?]+)/);
-            if(match && match[1]) {
-                ytPlaylistArray = []; 
-                dbRef.update({
-                    basePlaylistId: match[1], basePlaylistIndex: 0, baseFinished: false
-                });
-                document.getElementById('baseInput').value = "";
-            } else {
-                alert("Por favor, introduce un enlace válido de YouTube que contenga una Playlist (ejemplo: ?list=PL...)");
-            }
-        }
-
-        function finishBasePlaylist() {
-            dbRef.transaction(data => {
-                if (data) data.baseFinished = true;
-                return data;
-            });
-        }
-
-        function nextBaseVideo(newIndex) {
-            dbRef.transaction(data => {
-                if (data) data.basePlaylistIndex = newIndex;
-                return data;
-            });
-        }
-
-        function addToQueue(sourceId) {
-            let inputEl = document.getElementById(sourceId);
-            let embedUrl = parseEmbedURL(inputEl.value);
-            if (!embedUrl) { alert("Enlace no compatible o inválido."); return; }
-
-            dbRef.child('playlist').transaction((playlist) => {
-                if (!playlist) playlist = [];
-                playlist.push(embedUrl);
-                return playlist;
-            }, (error, committed) => {
-                if (committed) inputEl.value = "";
-            });
-        }
-
-        function nextQueueItem() {
-            dbRef.child('playlist').transaction((playlist) => {
-                if (playlist && playlist.length > 0) playlist.shift();
-                return playlist;
-            });
-        }
-
-        function selectQueueItem(index) {
-            dbRef.transaction(data => {
-                if (!data) return data;
-                data.baseFinished = true; 
-                if (data.playlist) data.playlist = data.playlist.slice(index);
-                return data;
-            });
-        }
-
-        function clearAll() {
-            ytPlaylistArray = [];
-            dbRef.set({ basePlaylistId: "", basePlaylistIndex: 0, baseFinished: false, playlist: [] });
-        }
-
-        function nextVideoUI() {
-            if (activePlayType === "BASE" && ytPlayer && ytPlayer.getPlaylist) {
-                let cIdx = ytPlayer.getPlaylistIndex();
-                let arr = ytPlayer.getPlaylist();
-                if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
-                else nextBaseVideo(cIdx + 1);
-            } else {
-                nextQueueItem();
-            }
-        }
-
-        function renderBaseInfoUI(data) {
-            let baseHtml = "";
-            let isAcOpen = document.getElementById('accordion-content') && document.getElementById('accordion-content').classList.contains('open');
-            let arrowIcon = isAcOpen ? "▲" : "▼";
-
-            if (data.basePlaylistId && !data.baseFinished) {
-                let currentIdx = data.basePlaylistIndex || 0;
-                
-                baseHtml = `
-                <div class="queue-item active clickable" style="display: flex; justify-content: space-between; align-items: center;" onclick="toggleAccordion()">
-                    <div>
-                        <b>📺 Reproduciendo Lista Base</b><br>
-                        <span style="font-size:10px; color:#9ca3af; word-break:break-all;">ID: ${data.basePlaylistId}</span><br>
-                        Sincronizando Video #${currentIdx + 1}
-                    </div>
-                    <div id="accordion-icon" style="font-size: 14px; color: #fff; margin-left: 10px;">${arrowIcon}</div>
-                </div>`;
-                
-                if (ytPlaylistArray && ytPlaylistArray.length > 0) {
-                    let tracksHtml = "";
-                    ytPlaylistArray.forEach((trackId, index) => {
-                        let isCurrent = (index === currentIdx) ? "active" : "";
-                        tracksHtml += `<div class="track-item ${isCurrent}" onclick="nextBaseVideo(${index}); event.stopPropagation();">Pista ${index + 1}</div>`;
-                    });
-
-                    baseHtml += `
-                        <div id="accordion-content" class="accordion-content ${isAcOpen ? "open" : ""}">
-                            ${tracksHtml}
-                        </div>
-                    `;
-                } else {
-                     baseHtml += `
-                        <div id="accordion-content" class="accordion-content ${isAcOpen ? "open" : ""}">
-                            <div style="font-size:10px; margin-top:5px; color:#9ca3af; padding: 5px;">Cargando pistas de la lista...</div>
-                        </div>
-                    `;
-                }
-            } else if (data.baseFinished) {
-                baseHtml = `<div class="queue-item" style="border-left: 3px solid #ef4444; opacity: 0.6;">
-                    <b>✅ Lista Base Finalizada</b><br>
-                    <span style="font-size:10px;">Transfiriendo a la Cola de Usuarios...</span>
-                </div>`;
-            } else {
-                baseHtml = `<div class="queue-item" style="opacity: 0.4;">Ninguna lista asignada</div>`;
-            }
-            document.getElementById('base-info').innerHTML = baseHtml;
-        }
-
-        function listenFirebase() {
-            dbRef.on('value', (snapshot) => {
-                const data = snapshot.val() || {};
-                if (!isActivated) return;
-
-                renderBaseInfoUI(data);
-
-                const playlist = data.playlist || [];
-                const listEl = document.getElementById('queue-list');
-                listEl.innerHTML = "";
-                playlist.forEach((item, idx) => {
-                    let isActive = (idx === 0 && data.baseFinished === true) || (idx === 0 && !data.basePlaylistId);
-                    let div = document.createElement('div');
-                    div.className = `queue-item clickable ${isActive ? 'active' : ''}`;
-                    div.onclick = () => selectQueueItem(idx);
-                    div.innerHTML = `<b>#${idx + 1}</b><br><span style="word-break:break-all;">${item}</span>`;
-                    listEl.appendChild(div);
-                });
-
-                let targetType = "";
-                let targetItem = "";
-                let targetIndex = 0;
-
-                if (data.basePlaylistId && !data.baseFinished) {
-                    targetType = "BASE"; targetItem = data.basePlaylistId; targetIndex = data.basePlaylistIndex || 0;
-                } else if (playlist.length > 0) {
-                    targetType = "QUEUE"; targetItem = playlist[0];
-                }
-
-                if (!targetType) {
-                    activePlayType = ""; currentItem = "";
-                    document.getElementById('media-container').innerHTML = "Pantalla en espera... (Vacío)";
-                    return;
-                }
-
-                if (targetType !== activePlayType || targetItem !== currentItem) {
-                    activePlayType = targetType; currentItem = targetItem; currentYtIndex = targetIndex;
-                    loadMedia(targetType, currentItem, currentYtIndex, data);
-                } else if (targetType === "BASE" && targetIndex !== currentYtIndex) {
-                    currentYtIndex = targetIndex;
-                    if (ytPlayer && typeof ytPlayer.playVideoAt === 'function') ytPlayer.playVideoAt(currentYtIndex);
-                    else loadMedia(targetType, currentItem, currentYtIndex, data);
-                }
-            });
-        }
-
-        function loadMedia(type, item, index, firebaseData) {
-            const container = document.getElementById('media-container');
+    <div id="ui-container" class="hidden">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+            <input type="text" id="urlInput" placeholder="Pega URL de YouTube, Twitch, Facebook, Vimeo..." style="flex: 1;">
+            <button class="btn" onclick="addUrl()">Añadir a Cola</button>
+            <button class="btn btn-danger" onclick="clearAll()">Limpiar Todo</button>
+            <button class="btn btn-sync" onclick="forzarSincronizacion()">🔄 Sincronizar</button>
             
-            if (type === "BASE") {
-                container.innerHTML = '<div id="yt-player"></div>';
-                ytPlayer = new YT.Player('yt-player', {
-                    playerVars: { 
-                        listType: 'playlist', list: item, index: index,
-                        autoplay: 1, controls: 1, rel: 0, enablejsapi: 1, origin: window.location.origin
-                    },
-                    events: {
-                        'onReady': (event) => {
-                            setTimeout(() => {
-                                let arr = event.target.getPlaylist();
-                                if (arr && arr.length > 0) {
-                                    ytPlaylistArray = arr;
-                                    renderBaseInfoUI(firebaseData); 
-                                }
-                            }, 2000);
-                        },
-                        'onStateChange': (event) => {
-                            if (ytPlaylistArray.length === 0) {
-                                let arr = event.target.getPlaylist();
-                                if (arr && arr.length > 0) {
-                                    ytPlaylistArray = arr;
-                                    renderBaseInfoUI(firebaseData);
-                                }
-                            }
-                            if (event.data === 0) { 
-                                let cIdx = event.target.getPlaylistIndex();
-                                let arr = event.target.getPlaylist();
-                                if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
-                                else nextBaseVideo(cIdx + 1);
-                            }
-                        },
-                        'onError': (event) => {
-                            let cIdx = event.target.getPlaylistIndex();
-                            let arr = event.target.getPlaylist();
-                            if (arr && cIdx >= arr.length - 1) finishBasePlaylist();
-                            else nextBaseVideo(cIdx + 1);
-                        }
-                    }
-                });
-            } else if (type === "QUEUE") {
-                if (item.startsWith("YT:")) {
-                    let videoId = item.replace("YT:", "");
-                    container.innerHTML = '<div id="yt-player"></div>';
-                    ytPlayer = new YT.Player('yt-player', {
-                        videoId: videoId,
-                        playerVars: { autoplay: 1, controls: 1, rel: 0, enablejsapi: 1, origin: window.location.origin },
-                        events: { 'onStateChange': (event) => { if (event.data === 0) nextQueueItem(); } }
-                    });
-                } else {
-                    container.innerHTML = `<iframe src="${item}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write; microphone; camera" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
-                }
-            }
+            <label for="volSlider" style="margin-left: 10px; font-weight: bold;">Volumen:</label>
+            <input type="range" id="volSlider" min="0" max="100" value="50" oninput="cambiarVolumen()" style="width: 100px; cursor: pointer;">
+        </div>
+
+        <div style="display: flex; gap: 20px;">
+            <div style="flex: 1;">
+                <h4>Cola de Peticiones (Prioridad)</h4>
+                <div id="queueList" class="list-container"></div>
+            </div>
+            <div style="flex: 1;">
+                <h4>Lista Base (Fondo)</h4>
+                <input type="text" id="basePlaylistInput" placeholder="ID de Lista de YouTube (Ej: PL...)" style="width: calc(100% - 80px);">
+                <button class="btn" onclick="setBasePlaylist()">Fijar</button>
+                <div id="baseList" class="list-container"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ================= CONFIGURACIÓN FIREBASE =================
+const firebaseConfig = {
+    databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" 
+};
+firebase.initializeApp(firebaseConfig);
+
+const urlParams = new URLSearchParams(window.location.search);
+const channelName = urlParams.get('channel') || 'canal_por_defecto';
+document.getElementById('channelDisplay').innerText = `Canal: ${channelName}`;
+
+const dbRef = firebase.database().ref(channelName);
+
+// ================= VARIABLES GLOBALES =================
+let ytPlayer;
+let isPlayerReady = false;
+let currentMedia = null; 
+let interactionDone = false;
+let ytPlaylistArray = [];
+
+// ================= INTERACCIÓN INICIAL (AUTOPLAY FIX) =================
+function startInteraction() {
+    interactionDone = true;
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('ui-container').classList.remove('hidden');
+    
+    ytPlayer = new YT.Player('player-container', {
+        height: '100%', width: '100%', videoId: '',
+        playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0 },
+        events: { 'onReady': onPlayerReady, 'onStateChange': onStateChange }
+    });
+}
+
+function toggleUI() {
+    const ui = document.getElementById('ui-container');
+    ui.classList.toggle('hidden');
+}
+
+function onPlayerReady(event) {
+    isPlayerReady = true;
+    
+    // Aplicar el volumen inicial según el slider
+    const volInicial = document.getElementById('volSlider').value;
+    ytPlayer.setVolume(volInicial);
+    
+    listenFirebase();
+}
+
+// ================= LÓGICA DE FIREBASE =================
+function listenFirebase() {
+    dbRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        updateUI(data);
+
+        let mediaToPlay = null;
+        let isYtPlaylist = false;
+        let ytIdx = 0;
+
+        if (data.playlist && data.playlist.length > 0) {
+            mediaToPlay = data.playlist[0]; 
+        } else if (data.basePlaylistId && !data.baseFinished) {
+            mediaToPlay = data.basePlaylistId; 
+            isYtPlaylist = true;
+            ytIdx = data.basePlaylistIndex || 0;
         }
-    </script>
+
+        if (mediaToPlay !== currentMedia) {
+            currentMedia = mediaToPlay;
+            loadMedia(mediaToPlay, isYtPlaylist, ytIdx);
+        }
+    });
+}
+
+// ================= REPRODUCCIÓN MULTIMEDIA =================
+function loadMedia(urlOrId, isYtPlaylist, index) {
+    if (!interactionDone) return;
+    const container = document.getElementById('player-container');
+    
+    if (isYtPlaylist) {
+        container.innerHTML = '';
+        if(ytPlayer && ytPlayer.loadPlaylist) {
+            ytPlayer.loadPlaylist({ list: urlOrId, index: index, startSeconds: 0 });
+        }
+    } else {
+        const parsed = parseEmbedURL(urlOrId);
+        if (parsed.type === 'youtube') {
+            container.innerHTML = '';
+            if(ytPlayer && ytPlayer.loadVideoById) {
+                ytPlayer.loadVideoById(parsed.id);
+            }
+        } else {
+            container.innerHTML = `<iframe src="${parsed.url}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+            setTimeout(() => { if (currentMedia === urlOrId) nextQueueItem(); }, 300000); // 5 min
+        }
+    }
+}
+
+// ================= EVENTOS YOUTUBE =================
+function onStateChange(event) {
+    if (event.data === YT.PlayerState.ENDED) {
+        dbRef.once('value').then(snapshot => {
+            const data = snapshot.val();
+            if (data.playlist && data.playlist.length > 0) {
+                nextQueueItem();
+            } else if (data.basePlaylistId) {
+                let currentYtIndex = ytPlayer.getPlaylistIndex();
+                nextBaseVideo(currentYtIndex + 1);
+            }
+        });
+    }
+}
+
+// ================= SINCRONIZACIÓN MANUAL =================
+function forzarSincronizacion() {
+    if (!ytPlayer || typeof ytPlayer.seekTo !== 'function') {
+        alert("La sincronización manual solo está disponible para videos de YouTube.");
+        return;
+    }
+    
+    dbRef.once('value').then((snapshot) => {
+        const data = snapshot.val();
+        if (data && data.tiempoInicio) {
+            let tiempoTranscurrido = (Date.now() - data.tiempoInicio) / 1000;
+            ytPlayer.seekTo(tiempoTranscurrido, true);
+            ytPlayer.playVideo();
+            console.log("Sincronizado a " + tiempoTranscurrido + " segundos.");
+        } else {
+            alert("No hay datos de tiempo guardados. Reinicia el video para activar la sincronización.");
+        }
+    });
+}
+
+// ================= CONTROL DE VOLUMEN LOCAL =================
+function cambiarVolumen() {
+    const vol = document.getElementById('volSlider').value;
+    
+    if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+        ytPlayer.setVolume(vol);
+    }
+}
+
+// ================= CONTROLADORES DE DATOS =================
+function addUrl() {
+    const input = document.getElementById('urlInput').value.trim();
+    if (!input) return;
+    
+    dbRef.child('playlist').once('value').then(snap => {
+        let queue = snap.val() || [];
+        queue.push(input);
+        dbRef.child('playlist').set(queue);
+    });
+    document.getElementById('urlInput').value = '';
+}
+
+function setBasePlaylist() {
+    const input = document.getElementById('basePlaylistInput').value.trim();
+    const match = input.match(/[?&]list=([^&]+)/) || [null, input];
+    
+    if (match[1]) {
+        dbRef.update({
+            basePlaylistId: match[1], 
+            basePlaylistIndex: 0, 
+            baseFinished: false,
+            tiempoInicio: Date.now() 
+        });
+    }
+}
+
+function nextBaseVideo(newIndex) {
+    dbRef.transaction(data => {
+        if (data) {
+            data.basePlaylistIndex = newIndex;
+            data.tiempoInicio = Date.now(); 
+        }
+        return data;
+    });
+}
+
+function nextQueueItem() {
+    dbRef.transaction(data => {
+        if (!data) return data;
+        
+        if (data.playlist && data.playlist.length > 0) {
+            data.playlist.shift();
+            data.tiempoInicio = Date.now(); 
+        }
+        if (!data.playlist || data.playlist.length === 0) {
+            data.baseFinished = false; 
+            data.tiempoInicio = Date.now(); 
+        }
+        return data;
+    });
+}
+
+function clearAll() {
+    ytPlaylistArray = [];
+    dbRef.set({ 
+        basePlaylistId: "", 
+        basePlaylistIndex: 0, 
+        baseFinished: false, 
+        playlist: [],
+        tiempoInicio: Date.now() 
+    });
+}
+
+function removeQueueItem(index) {
+    dbRef.child('playlist').transaction(queue => {
+        if (queue) queue.splice(index, 1);
+        return queue;
+    });
+}
+
+function selectQueueItem(index) {
+    dbRef.transaction(data => {
+        if (!data) return data;
+        data.baseFinished = true; 
+        if (data.playlist) data.playlist = data.playlist.slice(index);
+        data.tiempoInicio = Date.now(); 
+        return data;
+    });
+}
+
+// ================= PARSER DE URLS =================
+function parseEmbedURL(url) {
+    let match;
+    match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+    if (match) return { type: 'youtube', id: match[1], url: `https://www.youtube.com/embed/${match[1]}?autoplay=1` };
+    
+    match = url.match(/twitch\.tv\/([^&]+)/);
+    if (match) return { type: 'twitch', url: `https://player.twitch.tv/?channel=${match[1]}&parent=${window.location.hostname}&autoplay=true` };
+    
+    return { type: 'iframe', url: url };
+}
+
+// ================= ACTUALIZACIÓN DE UI =================
+function updateUI(data) {
+    const queueList = document.getElementById('queueList');
+    queueList.innerHTML = '';
+    if (data.playlist) {
+        data.playlist.forEach((item, idx) => {
+            queueList.innerHTML += `
+                <div class="list-item">
+                    <span style="cursor:pointer" onclick="selectQueueItem(${idx})">${idx + 1}. ${item.substring(0,40)}...</span>
+                    <button class="btn btn-danger" onclick="removeQueueItem(${idx})">X</button>
+                </div>
+            `;
+        });
+    }
+
+    const baseList = document.getElementById('baseList');
+    if (data.basePlaylistId) {
+        baseList.innerHTML = `<div class="list-item">Lista Activa: ${data.basePlaylistId} (Índice: ${data.basePlaylistIndex || 0})</div>`;
+    } else {
+        baseList.innerHTML = 'Sin lista base configurada.';
+    }
+}
+</script>
 </body>
 </html>
