@@ -37,14 +37,14 @@
     <div class="channel-info" id="channelDisplay">Canal: ...</div>
     <div id="player-container"></div>
 
-    <button id="toggle-ui" onclick="toggleUI()">UI</button>
+    <button id="toggle-ui" onclick="toggleUI()">Quitar HUD</button>
 
     <div id="ui-container" class="hidden">
         <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
-            <input type="text" id="urlInput" placeholder="Pega URL de YouTube, Twitch, Facebook, Vimeo..." style="flex: 1;">
-            <button class="btn" onclick="addUrl()">Añadir a Cola</button>
+            <input type="text" id="urlInput" placeholder="Pega URL de YouTube, Twitch..." style="flex: 1;">
+            <button class="btn" onclick="addUrl()">Añadir a la Lista</button>
             <button class="btn btn-danger" onclick="clearAll()">Limpiar Todo</button>
-            <button class="btn btn-sync" onclick="forzarSincronizacion()">🔄 Sincronizar</button>
+            <button class="btn btn-sync" onclick="forzarSincronizacion()">🔄 Sincronizar video</button>
             
             <label for="volSlider" style="margin-left: 10px; font-weight: bold;">Volumen:</label>
             <input type="range" id="volSlider" min="0" max="100" value="50" oninput="cambiarVolumen()" style="width: 100px; cursor: pointer;">
@@ -52,13 +52,13 @@
 
         <div style="display: flex; gap: 20px;">
             <div style="flex: 1;">
-                <h4>Cola de Peticiones (Prioridad)</h4>
+                <h4>Lista De Videos: </h4>
                 <div id="queueList" class="list-container"></div>
             </div>
             <div style="flex: 1;">
-                <h4>Lista Base (Fondo)</h4>
+                <h4>Playlist de youtube: </h4>
                 <input type="text" id="basePlaylistInput" placeholder="ID de Lista de YouTube (Ej: PL...)" style="width: calc(100% - 80px);">
-                <button class="btn" onclick="setBasePlaylist()">Fijar</button>
+                <button class="btn" onclick="setBasePlaylist()">Agregar</button>
                 <div id="baseList" class="list-container"></div>
             </div>
         </div>
@@ -317,9 +317,9 @@ function updateUI(data) {
 
     const baseList = document.getElementById('baseList');
     if (data.basePlaylistId) {
-        baseList.innerHTML = `<div class="list-item">Lista Activa: ${data.basePlaylistId} (Índice: ${data.basePlaylistIndex || 0})</div>`;
+        baseList.innerHTML = `<div class="list-item">Playlist Activa: ${data.basePlaylistId} (Índice: ${data.basePlaylistIndex || 0})</div>`;
     } else {
-        baseList.innerHTML = 'Sin lista base configurada.';
+        baseList.innerHTML = 'Playlist no configurada.';
     }
 }
 </script>
