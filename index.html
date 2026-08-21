@@ -43,31 +43,42 @@
         .nav-btn { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 12px 28px; border-radius: 30px; font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); }
         .nav-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
 
-        /* YOUTUBE APP INTERACTIVE VIEW */
-        #youtube-app { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; background: #0f0f12; padding: 90px 40px 30px 40px; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
-        #youtube-app.active { opacity: 1; pointer-events: auto; }
+        /* ESTILOS COMUNES PARA APPS DE NAVEGACIÓN (YOUTUBE Y TWITCH) */
+        .app-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; background: #0f0f12; padding: 90px 40px 30px 40px; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+        .app-view.active { opacity: 1; pointer-events: auto; }
 
-        .yt-search-bar { display: flex; gap: 12px; margin-bottom: 25px; }
-        .yt-search-input { flex: 1; padding: 14px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: white; font-size: 16px; outline: none; }
-        .yt-search-input:focus { border-color: #ff0000; background: rgba(255,255,255,0.12); }
-        .btn-yt { padding: 14px 28px; border-radius: 30px; border: none; background: #ff0000; color: white; font-weight: bold; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
-        .btn-yt:hover { transform: scale(1.05); background: #cc0000; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 25px; }
+        .search-input { flex: 1; padding: 14px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: white; font-size: 16px; outline: none; }
+        .search-input:focus { border-color: #9146ff; background: rgba(255,255,255,0.12); }
+        
+        .btn-app { padding: 14px 28px; border-radius: 30px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
+        .btn-app:hover { transform: scale(1.05); }
+        .btn-yt-color { background: #ff0000; }
+        .btn-yt-color:hover { background: #cc0000; }
+        .btn-twitch-color { background: #9146ff; }
+        .btn-twitch-color:hover { background: #772ce8; }
         .btn-back { background: rgba(255,255,255,0.2); }
         .btn-back:hover { background: rgba(255,255,255,0.3); }
 
-        .yt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; padding-right: 10px; flex: 1; }
-        .yt-card { background: rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.25s; border: 2px solid transparent; }
-        .yt-card:hover { transform: translateY(-6px) scale(1.02); border-color: #ff0000; box-shadow: 0 10px 20px rgba(255,0,0,0.3); }
-        .yt-thumb { width: 100%; height: 125px; object-fit: cover; }
-        .yt-info { padding: 12px; }
-        .yt-title { font-size: 13px; font-weight: 700; line-height: 1.3; height: 34px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; }
-        .yt-channel { font-size: 11px; color: #aaa; }
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; padding-right: 10px; flex: 1; }
+        
+        /* TARJETAS DE CONTENIDO */
+        .media-card { background: rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.25s; border: 2px solid transparent; position: relative; }
+        .media-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 10px 20px rgba(145,70,255,0.3); border-color: #9146ff; }
+        .media-thumb { width: 100%; height: 125px; object-fit: cover; }
+        .media-info { padding: 12px; }
+        .media-title { font-size: 13px; font-weight: 700; line-height: 1.3; height: 34px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; }
+        .media-sub { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; align-items: center; }
+
+        /* BADGE LIVE Y VIEWERS EN TWITCH */
+        .live-badge { position: absolute; top: 10px; left: 10px; background: #e50914; color: white; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        .viewer-count { position: absolute; bottom: 80px; left: 10px; background: rgba(0,0,0,0.75); color: white; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 4px; backdrop-filter: blur(4px); }
 
         /* REPRODUCTOR FULLSCREEN */
         #media-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #000; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
         #media-screen.active { opacity: 1; pointer-events: auto; z-index: 25; }
 
-        /* HUD CONTROLES */
+        /* HUD OVERLAY */
         #ui-hud { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); z-index: 30; transition: transform 0.3s; display: flex; gap: 10px; align-items: center; }
         #ui-hud.hidden { transform: translateY(100%); }
         input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 14px; outline: none; }
@@ -103,7 +114,7 @@
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
             </div>
 
-            <div class="app-card bg-twitch" onclick="openApp('twitch')">
+            <div class="app-card bg-twitch" onclick="openTwitchApp()">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
             </div>
 
@@ -122,14 +133,24 @@
         </div>
     </div>
 
-    <!-- YOUTUBE SMART APP VIEW -->
-    <div id="youtube-app">
-        <div class="yt-search-bar">
-            <button class="btn-yt btn-back" onclick="showDashboard()">◀ Menú</button>
-            <input type="text" id="ytQuery" class="yt-search-input" placeholder="Buscar videos o música en YouTube..." onkeydown="if(event.key==='Enter') searchYouTube()">
-            <button class="btn-yt" onclick="searchYouTube()">Buscar</button>
+    <!-- YOUTUBE APP VIEW -->
+    <div id="youtube-app" class="app-view">
+        <div class="search-bar">
+            <button class="btn-app btn-back" onclick="showDashboard()">◀ Menú</button>
+            <input type="text" id="ytQuery" class="search-input" placeholder="Buscar videos o música en YouTube..." onkeydown="if(event.key==='Enter') searchYouTube()">
+            <button class="btn-app btn-yt-color" onclick="searchYouTube()">Buscar</button>
         </div>
-        <div id="ytResults" class="yt-grid"></div>
+        <div id="ytResults" class="media-grid"></div>
+    </div>
+
+    <!-- TWITCH APP VIEW -->
+    <div id="twitch-app" class="app-view">
+        <div class="search-bar">
+            <button class="btn-app btn-back" onclick="showDashboard()">◀ Menú</button>
+            <input type="text" id="twitchQuery" class="search-input" style="focus-border-color:#9146ff;" placeholder="Buscar canal de Twitch o categoría..." onkeydown="if(event.key==='Enter') searchTwitch()">
+            <button class="btn-app btn-twitch-color" onclick="searchTwitch()">Buscar Streamer</button>
+        </div>
+        <div id="twitchResults" class="media-grid"></div>
     </div>
 
     <!-- REPRODUCTOR FULLSCREEN -->
@@ -186,6 +207,7 @@ function loadURL(url) {
     const screen = document.getElementById('media-screen');
     const dashboard = document.getElementById('dashboard');
     const ytApp = document.getElementById('youtube-app');
+    const twitchApp = document.getElementById('twitch-app');
 
     if (!url || url === 'home') {
         showDashboard();
@@ -194,20 +216,31 @@ function loadURL(url) {
 
     dashboard.classList.add('hidden');
     ytApp.classList.remove('active');
+    twitchApp.classList.remove('active');
     screen.classList.add('active');
 
+    // YouTube
     if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
         if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(RegExp.$1);
-    } else if (url.match(/\.(mp4|webm|ogv)$/i)) {
+    } 
+    // Twitch Stream / Channel
+    else if (url.match(/twitch\.tv\/([^&]+)/)) {
+        const channelName = RegExp.$1;
+        screen.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${window.location.hostname}&autoplay=true" width="100%" height="100%" frameborder="0" allowfullscreen style="border:none;"></iframe>`;
+    } 
+    // Direct Video (.mp4)
+    else if (url.match(/\.(mp4|webm|ogv)$/i)) {
         screen.innerHTML = `<video src="${url}" width="100%" height="100%" controls autoplay style="background:#000;"></video>`;
-    } else {
+    } 
+    // Generic Embed / Web
+    else {
         screen.innerHTML = `<iframe src="${url}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="border:none;"></iframe>`;
     }
 }
 
-// LÓGICA DE YOUTUBE APP & INVIDIOUS API
+// ================= YOUTUBE APP LOGIC =================
 function openYouTubeApp() {
-    document.getElementById('dashboard').classList.add('hidden');
+    hideAllViews();
     document.getElementById('youtube-app').classList.add('active');
     fetchTrendingYouTube();
 }
@@ -220,7 +253,6 @@ function fetchTrendingYouTube() {
         .then(res => res.json())
         .then(data => renderYtGrid(data))
         .catch(() => {
-            // Instancia de respaldo
             fetch('https://inv.specified.tech/api/v1/trending')
                 .then(res => res.json())
                 .then(data => renderYtGrid(data))
@@ -261,11 +293,11 @@ function renderYtGrid(videos) {
         const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
         resultsContainer.innerHTML += `
-            <div class="yt-card" onclick="playYtVideo('${videoId}')">
-                <img class="yt-thumb" src="${thumb}" alt="thumb">
-                <div class="yt-info">
-                    <div class="yt-title">${title}</div>
-                    <div class="yt-channel">${author}</div>
+            <div class="media-card" onclick="playYtVideo('${videoId}')">
+                <img class="media-thumb" src="${thumb}" alt="thumb">
+                <div class="media-info">
+                    <div class="media-title">${title}</div>
+                    <div class="media-sub"><span>${author}</span></div>
                 </div>
             </div>
         `;
@@ -276,6 +308,90 @@ function playYtVideo(videoId) {
     dbRef.update({ currentUrl: `https://www.youtube.com/watch?v=${videoId}` });
 }
 
+// ================= TWITCH APP LOGIC =================
+function openTwitchApp() {
+    hideAllViews();
+    document.getElementById('twitch-app').classList.add('active');
+    fetchTopTwitchStreams();
+}
+
+function fetchTopTwitchStreams() {
+    const resultsContainer = document.getElementById('twitchResults');
+    resultsContainer.innerHTML = '<div style="color:#aaa;">Cargando en vivos populares...</div>';
+
+    // API pública para streams top de Twitch
+    fetch('https://decapi.me/twitch/top_streams?limit=16')
+        .then(res => res.text())
+        .then(text => {
+            // Genera lista de los streamers más vistos
+            const lines = text.split('\n').filter(l => l.trim() !== '');
+            if (lines.length === 0) {
+                fallbackTwitchStreams();
+                return;
+            }
+            renderTwitchGridFromDecapi(lines);
+        })
+        .catch(() => fallbackTwitchStreams());
+}
+
+function renderTwitchGridFromDecapi(lines) {
+    const resultsContainer = document.getElementById('twitchResults');
+    resultsContainer.innerHTML = '';
+
+    lines.forEach(line => {
+        // Ejemplo formato: "StreamerName - Game (12,345 viewers)"
+        const parts = line.split(' - ');
+        if (parts.length >= 2) {
+            const user = parts[0].trim();
+            const details = parts.slice(1).join(' - ');
+            const thumb = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${user.toLowerCase()}-320x180.jpg`;
+
+            resultsContainer.innerHTML += `
+                <div class="media-card" onclick="playTwitchStream('${user}')">
+                    <span class="live-badge">EN VIVO</span>
+                    <img class="media-thumb" src="${thumb}" onerror="this.src='https://via.placeholder.com/320x180?text=Twitch+Live'" alt="thumb">
+                    <div class="media-info">
+                        <div class="media-title" style="color:#9146ff;">${user}</div>
+                        <div class="media-sub"><span>${details}</span></div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+
+function fallbackTwitchStreams() {
+    // Streamers de respaldo populares si la API externa falla
+    const popularStreamers = ['auronplay', 'ibai', 'rubius', 'illojuan', 'elxokas', 'tarik', 'gaules', 'shroud', 'kai_cenat', 'fps_shaka', 'fps_japan'];
+    const resultsContainer = document.getElementById('twitchResults');
+    resultsContainer.innerHTML = '';
+
+    popularStreamers.forEach(user => {
+        const thumb = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${user}-320x180.jpg`;
+        resultsContainer.innerHTML += `
+            <div class="media-card" onclick="playTwitchStream('${user}')">
+                <span class="live-badge">EN VIVO</span>
+                <img class="media-thumb" src="${thumb}" onerror="this.src='https://via.placeholder.com/320x180?text=Twitch+Live'" alt="thumb">
+                <div class="media-info">
+                    <div class="media-title" style="color:#9146ff;">${user}</div>
+                    <div class="media-sub"><span>Transmitiendo en directo</span></div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function searchTwitch() {
+    const q = document.getElementById('twitchQuery').value.trim().toLowerCase().replace(/\s+/g, '');
+    if (!q) return;
+    playTwitchStream(q);
+}
+
+function playTwitchStream(channelName) {
+    dbRef.update({ currentUrl: `https://www.twitch.tv/${channelName}` });
+}
+
+// ================= NAVEGACIÓN Y AUXILIARES =================
 function sendURL() {
     const url = document.getElementById('urlInput').value.trim();
     if (url) dbRef.update({ currentUrl: url });
@@ -283,14 +399,19 @@ function sendURL() {
 }
 
 function openApp(appName) {
-    if (appName === 'twitch') dbRef.update({ currentUrl: 'https://www.twitch.tv' });
-    else if (appName === 'browser' || appName === 'movies') toggleHUD();
+    if (appName === 'browser' || appName === 'movies') toggleHUD();
+}
+
+function hideAllViews() {
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('youtube-app').classList.remove('active');
+    document.getElementById('twitch-app').classList.remove('active');
+    document.getElementById('media-screen').classList.remove('active');
 }
 
 function showDashboard() {
     dbRef.update({ currentUrl: 'home' });
-    document.getElementById('media-screen').classList.remove('active');
-    document.getElementById('youtube-app').classList.remove('active');
+    hideAllViews();
     document.getElementById('dashboard').classList.remove('hidden');
 }
 
