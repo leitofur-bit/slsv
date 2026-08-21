@@ -12,120 +12,92 @@
         #ui-container { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.85); z-index: 10; box-sizing: border-box; transition: transform 0.3s; }
         .hidden { transform: translateY(100%); }
         #toggle-ui { position: absolute; bottom: 10px; right: 10px; z-index: 20; background: #333; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px; opacity: 0.5; }
-        #toggle-ui:hover { opacity: 1; }
         input, button { padding: 8px; margin: 2px; font-size: 14px; }
         .btn { cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; }
-        .btn:hover { background: #555; }
         .btn-danger { background: #d32f2f; }
-        .btn-danger:hover { background: #b71c1c; }
         .btn-sync { background: #3b82f6; font-weight: bold; }
         
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; align-items: center; justify-content: center; z-index: 50; cursor: pointer; font-size: 24px; font-weight: bold; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 50; cursor: pointer; font-size: 24px; font-weight: bold; }
         #overlay.hidden { display: none; }
         
         .list-container { max-height: 180px; overflow-y: auto; background: #222; padding: 10px; border-radius: 4px; margin-top: 10px; }
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #444; font-size: 13px; }
-        .video-thumb-title { display: flex; align-items: center; cursor: pointer; flex: 1; overflow: hidden; text-align: left; background: none; border: none; color: white; padding: 0; }
-        .video-thumb-title img { width: 50px; height: 30px; object-fit: cover; border-radius: 3px; margin-right: 8px; flex-shrink: 0; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #444; }
+        .video-thumb-title { display: flex; align-items: center; cursor: pointer; flex: 1; background: none; border: none; color: white; overflow: hidden; }
+        .video-thumb-title img { width: 50px; height: 30px; object-fit: cover; margin-right: 8px; }
         
         .playlist-active-container { background: #222; border-radius: 4px; margin-top: 10px; overflow: hidden; border: 1px solid #444; }
-        .playlist-active-header { padding: 10px 12px; background: #2a2a2a; cursor: pointer; display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
-        .playlist-active-header::after { content: '▼'; font-size: 10px; }
-        .playlist-active-container.open .playlist-items-list { max-height: 184px; }
+        .playlist-active-header { padding: 10px; background: #2a2a2a; cursor: pointer; font-weight: bold; font-size: 13px; }
         .playlist-items-list { max-height: 0; overflow-y: auto; transition: max-height 0.3s; background: #1a1a1a; }
-        
+        .playlist-active-container.open .playlist-items-list { max-height: 184px; }
         .channel-info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div id="overlay" onclick="startInteraction()">Haz clic aquí para activar la Pantalla</div>
+    <div id="overlay" onclick="startInteraction()">Haz clic aquí para activar el Reproductor</div>
     <div class="channel-info" id="channelDisplay">Canal: ...</div>
     <div id="player-container"></div>
-    <button id="toggle-ui" onclick="toggleUI()">Quitar HUD</button>
+    <button id="toggle-ui" onclick="toggleUI()">Quitar/Mostrar HUD</button>
 
     <div id="ui-container" class="hidden">
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
-            <input type="text" id="urlInput" placeholder="URL YouTube, Twitch o Video (.mp4)" style="flex: 1;">
-            <button class="btn" onclick="addUrl()">Añadir a la Lista</button>
-            <button class="btn btn-danger" onclick="clearAll()">Limpiar Todo</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <input type="text" id="urlInput" placeholder="YouTube, Twitch, .mp4 o Link de Streaming..." style="flex: 1;">
+            <button class="btn" onclick="addUrl()">Añadir</button>
+            <button class="btn btn-danger" onclick="clearAll()">Limpiar</button>
             <button class="btn btn-sync" onclick="forzarSincronizacion()">🔄 Sincronizar</button>
-            <input type="range" id="volSlider" min="0" max="100" value="50" oninput="cambiarVolumen()" style="width: 80px;">
         </div>
-
         <div style="display: flex; gap: 20px;">
-            <div style="flex: 1;"><h4>Lista De Videos: </h4><div id="queueList" class="list-container"></div></div>
-            <div style="flex: 1;"><h4>Playlist de youtube: </h4>
-                <input type="text" id="basePlaylistInput" placeholder="ID de Lista (PL...)" style="width: 70%;">
-                <button class="btn" onclick="setBasePlaylist()">Agregar</button>
-                <div id="baseList" class="list-container"></div>
-            </div>
+            <div style="flex: 1;"><h4>Cola de Reproducción:</h4><div id="queueList" class="list-container"></div></div>
+            <div style="flex: 1;"><h4>Playlist YouTube:</h4><div id="baseList" class="list-container"></div></div>
         </div>
     </div>
 
 <script>
-const firebaseConfig = { databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" };
-firebase.initializeApp(firebaseConfig);
-const channelName = new URLSearchParams(window.location.search).get('channel') || 'canal_por_defecto';
-const dbRef = firebase.database().ref(channelName);
-document.getElementById('channelDisplay').innerText = `Canal: ${channelName}`;
-
+const dbRef = firebase.database().ref(new URLSearchParams(window.location.search).get('channel') || 'canal_default');
 let ytPlayer, interactionDone = false, currentMedia = null;
 
 function startInteraction() {
     interactionDone = true;
     document.getElementById('overlay').classList.add('hidden');
     document.getElementById('ui-container').classList.remove('hidden');
-    ytPlayer = new YT.Player('player-container', { height: '100%', width: '100%', videoId: '', events: { 'onReady': () => { ytPlayer.setVolume(50); listenFirebase(); } } });
-}
-
-function listenFirebase() {
-    dbRef.on('value', (snap) => {
-        const data = snap.val();
-        if (!data) return;
-        updateUI(data);
-        let media = data.playlist && data.playlist.length > 0 ? data.playlist[0] : (data.basePlaylistId && !data.baseFinished ? data.basePlaylistId : null);
-        if (media !== currentMedia) {
-            currentMedia = media;
-            loadMedia(media, !!data.basePlaylistId && !data.playlist?.length, data.basePlaylistIndex || 0);
-        }
-    });
+    ytPlayer = new YT.Player('player-container', { height: '100%', width: '100%', events: { 'onReady': () => listenFirebase() } });
 }
 
 function parseEmbedURL(url) {
     if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) return { type: 'youtube', id: RegExp.$1 };
     if (url.match(/twitch\.tv\/([^&]+)/)) return { type: 'twitch', url: `https://player.twitch.tv/?channel=${RegExp.$1}&parent=${window.location.hostname}&autoplay=true` };
     if (url.match(/\.(mp4|webm|ogv)$/i)) return { type: 'direct_video', url: url };
-    return { type: 'iframe', url: url };
+    // Tipo especial para servidores de peliculas que requieren permisos extra
+    return { type: 'iframe_full', url: url };
 }
 
 function loadMedia(urlOrId, isYtPlaylist, index) {
     if (!interactionDone) return;
     const container = document.getElementById('player-container');
     if (isYtPlaylist) {
-        if(ytPlayer.loadPlaylist) ytPlayer.loadPlaylist({ list: urlOrId, index: index });
+        ytPlayer.loadPlaylist({ list: urlOrId, index: index });
     } else {
         const parsed = parseEmbedURL(urlOrId);
         if (parsed.type === 'youtube') ytPlayer.loadVideoById(parsed.id);
-        else if (parsed.type === 'direct_video') container.innerHTML = `<video src="${parsed.url}" width="100%" height="100%" controls autoplay style="background:black;"></video>`;
-        else container.innerHTML = `<iframe src="${parsed.url}" width="100%" height="100%" allow="autoplay; fullscreen"></iframe>`;
+        else if (parsed.type === 'direct_video') container.innerHTML = `<video src="${parsed.url}" width="100%" height="100%" controls autoplay></video>`;
+        else container.innerHTML = `<iframe src="${parsed.url}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin allow-top-navigation"></iframe>`;
     }
 }
 
-// Funciones de control y UI (Simplificadas para brevedad pero funcionales)
-function updateUI(data) {
-    const queueList = document.getElementById('queueList');
-    queueList.innerHTML = (data.playlist || []).map((item, idx) => `
-        <div class="list-item">
-            <button class="video-thumb-title" onclick="selectQueueItem(${idx})">
-                <img src="https://img.youtube.com/vi/${(item.match(/(?:v=)([^&]+)/)||[0, ''] )[1]}/mqdefault.jpg">
-                <span>${idx + 1}. ${item}</span>
-            </button>
-            <button class="btn btn-danger" onclick="removeQueueItem(${idx})">X</button>
-        </div>
-    `).join('');
+function toggleUI() { document.getElementById('ui-container').classList.toggle('hidden'); }
+function listenFirebase() {
+    dbRef.on('value', (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        updateUI(data);
+        let media = data.playlist?.[0] || (data.basePlaylistId ? data.basePlaylistId : null);
+        if (media !== currentMedia) {
+            currentMedia = media;
+            loadMedia(media, !!data.basePlaylistId && !data.playlist?.length, data.basePlaylistIndex || 0);
+        }
+    });
 }
-// (Mantén tus funciones originales de addUrl, nextQueueItem, etc., aquí abajo)
+// (Agrega aquí tus funciones auxiliares: addUrl, clearAll, updateUI, selectQueueItem, etc.)
 </script>
 </body>
 </html>
