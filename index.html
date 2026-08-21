@@ -2,391 +2,208 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SL TV - Multi Channel</title>
+    <title>Smart TV - Media Dashboard</title>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: white; }
-        #player-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #ui-container { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.85); z-index: 10; box-sizing: border-box; transition: transform 0.3s; }
-        .hidden { transform: translateY(100%); }
-        #toggle-ui { position: absolute; bottom: 10px; right: 10px; z-index: 20; background: #333; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px; opacity: 0.5; }
-        #toggle-ui:hover { opacity: 1; }
-        input, button { padding: 8px; margin: 2px; font-size: 14px; }
-        .btn { cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; }
-        .btn:hover { background: #555; }
-        .btn-danger { background: #d32f2f; }
-        .btn-danger:hover { background: #b71c1c; }
-        .btn-sync { background: #3b82f6; font-weight: bold; }
-        .btn-sync:hover { background: #2563eb; }
-        
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; align-items: center; justify-content: center; z-index: 50; cursor: pointer; font-size: 24px; font-weight: bold; }
-        #overlay.hidden { display: none; }
-        
-        .list-container { max-height: 180px; overflow-y: auto; background: #222; padding: 10px; border-radius: 4px; margin-top: 10px; }
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #444; font-size: 13px; }
-        .list-item:hover { background: #333; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1c29 0%, #08090d 100%); font-family: 'Segoe UI', Arial, sans-serif; color: white; overflow: hidden; }
 
-        .video-thumb-title { display: flex; align-items: center; cursor: pointer; flex: 1; overflow: hidden; text-align: left; background: none; border: none; color: white; padding: 0; }
-        .video-thumb-title img { width: 50px; height: 30px; object-fit: cover; border-radius: 3px; margin-right: 8px; flex-shrink: 0; }
-        .video-thumb-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* HEADER / BARRA SUPERIOR */
+        .top-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 25px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 20; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .logo { font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #fff; }
+        .logo span { color: #ff3b30; }
+        .top-right { display: flex; align-items: center; gap: 20px; font-size: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
-        .playlist-active-container { background: #222; border-radius: 4px; margin-top: 10px; overflow: hidden; font-family: sans-serif; border: 1px solid #444; }
-        .playlist-active-header { padding: 10px 12px; background: #2a2a2a; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; }
-        .playlist-active-header:hover { background: #333; }
-        .playlist-active-header::after { content: '▼'; font-size: 10px; transition: transform 0.3s; margin-left: 10px; }
-        .playlist-active-container.open .playlist-active-header::after { transform: rotate(180deg); }
-        .playlist-items-list { max-height: 0; overflow-y: auto; transition: max-height 0.3s ease-out; background: #1a1a1a; }
-        .playlist-active-container.open .playlist-items-list { max-height: 184px; }
+        /* MAIN DASHBOARD */
+        #dashboard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 80px 50px 40px 50px; z-index: 10; transition: opacity 0.5s, transform 0.5s; }
+        #dashboard.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+
+        .app-grid { display: flex; gap: 25px; align-items: center; margin-top: 20px; }
+
+        /* CARD GRANDE (RSS / NOTICIAS) */
+        .news-card { width: 320px; height: 200px; background: #222 url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600') center/cover; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer; }
+        .news-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); }
+        .news-card * { position: relative; z-index: 2; }
+        .badge { background: #ff9500; color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; }
+        .news-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
+
+        /* ICONOS DE APPS (ESTILO APPLE TV) */
+        .app-card { width: 160px; height: 200px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 10px 20px rgba(0,0,0,0.4); position: relative; border: 2px solid transparent; }
+        .app-card img { width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
         
-        .channel-info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+        /* EFECTO HOVER ELEGANTE (ANIMACIÓN DE ELEVACIÓN Y BRILLO) */
+        .app-card:hover, .news-card:hover { transform: translateY(-12px) scale(1.05); box-shadow: 0 20px 35px rgba(0,0,0,0.6), 0 0 25px rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.8); }
+
+        /* COLORES INDIVIDUALES */
+        .bg-youtube { background: linear-gradient(135deg, #ff0000, #990000); }
+        .bg-twitch { background: linear-gradient(135deg, #9146ff, #4b1b96); }
+        .bg-browser { background: linear-gradient(135deg, #007aff, #004080); }
+        .bg-movies { background: linear-gradient(135deg, #ff2d55, #8e001a); }
+
+        /* BARRA INFERIOR DE MENÚ */
+        .bottom-nav { margin-top: 40px; display: flex; gap: 15px; }
+        .nav-btn { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 12px 28px; border-radius: 30px; font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); }
+        .nav-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+
+        /* REPRODUCTOR Y CONTAINER FULLSCREEN */
+        #media-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #000; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+        #media-screen.active { opacity: 1; pointer-events: auto; }
+
+        /* CONTROLES / HUD OVERLAY */
+        #ui-hud { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); z-index: 30; transition: transform 0.3s; display: flex; gap: 10px; align-items: center; }
+        #ui-hud.hidden { transform: translateY(100%); }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 14px; outline: none; }
+        .btn-act { padding: 12px 20px; border-radius: 8px; border: none; background: #007aff; color: white; font-weight: bold; cursor: pointer; }
+        
+        /* OVERLAY INICIAL DE INTERACCIÓN */
+        #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 22px; font-weight: bold; }
+        #start-overlay.hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="overlay" onclick="startInteraction()">Haz clic aquí para activar la Pantalla</div>
-    <div class="channel-info" id="channelDisplay">Canal: ...</div>
-    <div id="player-container"></div>
+    <div id="start-overlay" onclick="initApp()"> Haz clic para Encender la TV</div>
 
-    <button id="toggle-ui" onclick="toggleUI()">Quitar HUD</button>
-
-    <div id="ui-container" class="hidden">
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
-            <input type="text" id="urlInput" placeholder="URL YouTube, Twitch, .mp4 o película..." style="flex: 1;">
-            <button class="btn" onclick="addUrl()">Añadir a la Lista</button>
-            <button class="btn btn-danger" onclick="clearAll()">Limpiar Todo</button>
-            <button class="btn btn-sync" onclick="forzarSincronizacion()">🔄 Sincronizar video</button>
-            
-            <label for="volSlider" style="margin-left: 10px; font-weight: bold;">Volumen:</label>
-            <input type="range" id="volSlider" min="0" max="100" value="50" oninput="cambiarVolumen()" style="width: 100px; cursor: pointer;">
-        </div>
-
-        <div style="display: flex; gap: 20px;">
-            <div style="flex: 1;">
-                <h4>Lista De Videos: </h4>
-                <div id="queueList" class="list-container"></div>
-            </div>
-            <div style="flex: 1;">
-                <h4>Playlist de youtube: </h4>
-                <input type="text" id="basePlaylistInput" placeholder="ID de Lista de YouTube (Ej: PL...)" style="width: calc(100% - 80px);">
-                <button class="btn" onclick="setBasePlaylist()">Agregar</button>
-                <div id="baseList" class="list-container"></div>
-            </div>
+    <!-- BARRA SUPERIOR (HEADER) -->
+    <div class="top-bar">
+        <div class="logo">MEDIA<span>SL</span></div>
+        <div class="top-right">
+            <span id="channelNameDisplay">Canal: ...</span>
+            <span id="clockDisplay">00:00 PM</span>
         </div>
     </div>
 
+    <!-- LAUNCHER / DASHBOARD ESTILO SMART TV -->
+    <div id="dashboard">
+        <div class="app-grid">
+            <!-- TARJETA NOTICIAS / RSS -->
+            <div class="news-card">
+                <span class="badge">Novedades SL</span>
+                <div class="news-title">Bienvenido a MediaSL Smart TV System</div>
+            </div>
+
+            <!-- APPS -->
+            <div class="app-card bg-youtube" onclick="openApp('youtube')">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
+            </div>
+
+            <div class="app-card bg-twitch" onclick="openApp('twitch')">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
+            </div>
+
+            <div class="app-card bg-movies" onclick="openApp('movies')">
+                <img src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
+            </div>
+
+            <div class="app-card bg-browser" onclick="openApp('browser')">
+                <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
+            </div>
+        </div>
+
+        <!-- BARRA INFERIOR -->
+        <div class="bottom-nav">
+            <div class="nav-btn" onclick="showDashboard()">INICIO</div>
+            <div class="nav-btn" onclick="toggleHUD()">HUD CONTROLES</div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE REPRODUCCIÓN (FULLSCREEN) -->
+    <div id="media-screen"></div>
+
+    <!-- HUD DE CONTROL (OCULTO POR DEFECTO) -->
+    <div id="ui-hud" class="hidden">
+        <input type="text" id="urlInput" placeholder="Pega URL de YouTube, Twitch, .mp4 o película...">
+        <button class="btn-act" onclick="sendURL()">Reproducir</button>
+        <button class="btn-act" style="background: #34c759;" onclick="showDashboard()">Ir al Menú</button>
+    </div>
+
 <script>
-// ================= CONFIGURACIÓN FIREBASE =================
-const firebaseConfig = {
-    databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" 
-};
+// FIREBASE CONFIG
+const firebaseConfig = { databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
 
-const urlParams = new URLSearchParams(window.location.search);
-const channelName = urlParams.get('channel') || 'canal_por_defecto';
-document.getElementById('channelDisplay').innerText = `Canal: ${channelName}`;
+const channel = new URLSearchParams(window.location.search).get('channel') || 'canal_default';
+document.getElementById('channelNameDisplay').innerText = `Canal: ${channel}`;
+const dbRef = firebase.database().ref(channel);
 
-const dbRef = firebase.database().ref(channelName);
+let ytPlayer, currentMedia = null, activeApp = 'home';
 
-// ================= VARIABLES GLOBALES =================
-let ytPlayer;
-let isPlayerReady = false;
-let currentMedia = null; 
-let interactionDone = false;
-
-// ================= INTERACCIÓN INICIAL (AUTOPLAY FIX) =================
-function startInteraction() {
-    interactionDone = true;
-    document.getElementById('overlay').classList.add('hidden');
-    document.getElementById('ui-container').classList.remove('hidden');
+function initApp() {
+    document.getElementById('start-overlay').classList.add('hidden');
+    updateClock();
+    setInterval(updateClock, 1000);
     
-    ytPlayer = new YT.Player('player-container', {
+    // Inicializa el reproductor YouTube embebido
+    ytPlayer = new YT.Player('media-screen', {
         height: '100%', width: '100%', videoId: '',
-        playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0 },
-        events: { 'onReady': onPlayerReady, 'onStateChange': onStateChange }
+        playerVars: { 'autoplay': 1, 'controls': 1 },
+        events: { 'onReady': () => listenFirebase() }
     });
 }
 
-function toggleUI() {
-    const ui = document.getElementById('ui-container');
-    ui.classList.toggle('hidden');
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clockDisplay').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function onPlayerReady(event) {
-    isPlayerReady = true;
-    const volInicial = document.getElementById('volSlider').value;
-    ytPlayer.setVolume(volInicial);
-    listenFirebase();
-}
-
-// ================= LÓGICA DE FIREBASE =================
 function listenFirebase() {
-    dbRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        updateUI(data);
-
-        let mediaToPlay = null;
-        let isYtPlaylist = false;
-        let ytIdx = 0;
-
-        if (data.playlist && data.playlist.length > 0) {
-            mediaToPlay = data.playlist[0]; 
-        } else if (data.basePlaylistId && !data.baseFinished) {
-            mediaToPlay = data.basePlaylistId; 
-            isYtPlaylist = true;
-            ytIdx = data.basePlaylistIndex || 0;
-        }
-
-        if (mediaToPlay !== currentMedia) {
-            currentMedia = mediaToPlay;
-            loadMedia(mediaToPlay, isYtPlaylist, ytIdx);
+    dbRef.on('value', snap => {
+        const data = snap.val();
+        if (!data || !data.currentUrl) return;
+        
+        if (data.currentUrl !== currentMedia) {
+            currentMedia = data.currentUrl;
+            loadURL(data.currentUrl);
         }
     });
 }
 
-// ================= PARSER Y REPRODUCCIÓN MULTIMEDIA =================
-function parseEmbedURL(url) {
-    let match;
-    match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-    if (match) return { type: 'youtube', id: match[1] };
-    
-    match = url.match(/twitch\.tv\/([^&]+)/);
-    if (match) return { type: 'twitch', url: `https://player.twitch.tv/?channel=${match[1]}&parent=${window.location.hostname}&autoplay=true` };
-    
-    if (url.match(/\.(mp4|webm|ogv)$/i)) return { type: 'direct_video', url: url };
-    
-    return { type: 'iframe_full', url: url };
-}
+function loadURL(url) {
+    const screen = document.getElementById('media-screen');
+    const dashboard = document.getElementById('dashboard');
 
-function loadMedia(urlOrId, isYtPlaylist, index) {
-    if (!interactionDone) return;
-    const container = document.getElementById('player-container');
-    
-    if (isYtPlaylist) {
-        if(ytPlayer && ytPlayer.loadPlaylist) {
-            ytPlayer.loadPlaylist({ list: urlOrId, index: index, startSeconds: 0 });
-        }
-    } else {
-        const parsed = parseEmbedURL(urlOrId);
-        if (parsed.type === 'youtube') {
-            if(ytPlayer && ytPlayer.loadVideoById) {
-                ytPlayer.loadVideoById(parsed.id);
-            }
-        } else if (parsed.type === 'direct_video') {
-            container.innerHTML = `<video src="${parsed.url}" width="100%" height="100%" controls autoplay style="background:black;"></video>`;
-        } else {
-            // Se quitó la restricción de sandbox para permitir la ejecución completa de reproductores de streaming web
-            container.innerHTML = `<iframe src="${parsed.url}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen style="border:none;"></iframe>`;
-        }
-    }
-}
-
-// ================= EVENTOS YOUTUBE =================
-function onStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) {
-        dbRef.once('value').then(snapshot => {
-            const data = snapshot.val();
-            if (data.playlist && data.playlist.length > 0) {
-                nextQueueItem();
-            } else if (data.basePlaylistId) {
-                let currentYtIndex = ytPlayer.getPlaylistIndex();
-                nextBaseVideo(currentYtIndex + 1);
-            }
-        });
-    }
-}
-
-// ================= SINCRONIZACIÓN MANUAL =================
-function forzarSincronizacion() {
-    if (!ytPlayer || typeof ytPlayer.seekTo !== 'function') {
-        alert("La sincronización manual solo está disponible para videos de YouTube.");
+    if (!url || url === 'home') {
+        showDashboard();
         return;
     }
-    
-    dbRef.once('value').then((snapshot) => {
-        const data = snapshot.val();
-        if (data && data.tiempoInicio) {
-            let tiempoTranscurrido = (Date.now() - data.tiempoInicio) / 1000;
-            ytPlayer.seekTo(tiempoTranscurrido, true);
-            ytPlayer.playVideo();
-        } else {
-            alert("No hay datos de tiempo guardados. Reinicia el video para activar la sincronización.");
-        }
-    });
-}
 
-// ================= CONTROL DE VOLUMEN LOCAL =================
-function cambiarVolumen() {
-    const vol = document.getElementById('volSlider').value;
-    if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
-        ytPlayer.setVolume(vol);
+    dashboard.classList.add('hidden');
+    screen.classList.add('active');
+
+    // Detección de plataforma
+    if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
+        if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(RegExp.$1);
+    } else if (url.match(/\.(mp4|webm|ogv)$/i)) {
+        screen.innerHTML = `<video src="${url}" width="100%" height="100%" controls autoplay style="background:#000;"></video>`;
+    } else {
+        // Embed libre con permisos completos para cualquier sitio web / película
+        screen.innerHTML = `<iframe src="${url}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="border:none;"></iframe>`;
     }
 }
 
-// ================= CONTROLADORES DE DATOS FIREBASE =================
-function addUrl() {
-    const input = document.getElementById('urlInput').value.trim();
-    if (!input) return;
-    
-    dbRef.child('playlist').once('value').then(snap => {
-        let queue = snap.val() || [];
-        queue.push(input);
-        dbRef.child('playlist').set(queue);
-    });
+function sendURL() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (url) dbRef.update({ currentUrl: url });
     document.getElementById('urlInput').value = '';
 }
 
-function setBasePlaylist() {
-    const input = document.getElementById('basePlaylistInput').value.trim();
-    const match = input.match(/[?&]list=([^&]+)/) || [null, input];
-    
-    if (match[1]) {
-        dbRef.update({
-            basePlaylistId: match[1], 
-            basePlaylistIndex: 0, 
-            baseFinished: false,
-            tiempoInicio: Date.now() 
-        });
-    }
-    document.getElementById('basePlaylistInput').value = '';
+function openApp(appName) {
+    if (appName === 'youtube') dbRef.update({ currentUrl: 'https://www.youtube.com' });
+    else if (appName === 'twitch') dbRef.update({ currentUrl: 'https://www.twitch.tv' });
+    else if (appName === 'browser') toggleHUD();
+    else if (appName === 'movies') toggleHUD();
 }
 
-function nextBaseVideo(newIndex) {
-    dbRef.transaction(data => {
-        if (data) {
-            data.basePlaylistIndex = newIndex;
-            data.tiempoInicio = Date.now(); 
-        }
-        return data;
-    });
+function showDashboard() {
+    dbRef.update({ currentUrl: 'home' });
+    document.getElementById('media-screen').classList.remove('active');
+    document.getElementById('dashboard').classList.remove('hidden');
 }
 
-function nextQueueItem() {
-    dbRef.transaction(data => {
-        if (!data) return data;
-        
-        if (data.playlist && data.playlist.length > 0) {
-            data.playlist.shift();
-            data.tiempoInicio = Date.now(); 
-        }
-        if (!data.playlist || data.playlist.length === 0) {
-            data.baseFinished = false; 
-            data.tiempoInicio = Date.now(); 
-        }
-        return data;
-    });
-}
-
-function clearAll() {
-    dbRef.set({ 
-        basePlaylistId: "", 
-        basePlaylistIndex: 0, 
-        baseFinished: false, 
-        playlist: [],
-        tiempoInicio: Date.now() 
-    });
-}
-
-function removeQueueItem(index) {
-    dbRef.child('playlist').transaction(queue => {
-        if (queue) queue.splice(index, 1);
-        return queue;
-    });
-}
-
-function selectQueueItem(index) {
-    dbRef.transaction(data => {
-        if (!data) return data;
-        data.baseFinished = true; 
-        if (data.playlist) data.playlist = data.playlist.slice(index);
-        data.tiempoInicio = Date.now(); 
-        return data;
-    });
-}
-
-// ================= AUXILIARES DE INTERFAZ =================
-function extraerInfoYoutube(url) {
-    let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-    if (match) {
-        return {
-            thumb: `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`,
-            title: url
-        };
-    }
-    return {
-        thumb: 'https://via.placeholder.com/50x30?text=Web',
-        title: url
-    };
-}
-
-function toggleAcordeonPlaylist() {
-    const acordeon = document.getElementById('acordeonPlaylist');
-    if (acordeon) acordeon.classList.toggle('open');
-}
-
-// ================= RENDERIZADO DE INTERFAZ (UI) =================
-function updateUI(data) {
-    const queueList = document.getElementById('queueList');
-    queueList.innerHTML = '';
-    
-    if (data.playlist && data.playlist.length > 0) {
-        data.playlist.forEach((item, idx) => {
-            let info = extraerInfoYoutube(item);
-            queueList.innerHTML += `
-                <div class="list-item">
-                    <button class="video-thumb-title" onclick="selectQueueItem(${idx})">
-                        <img src="${info.thumb}" alt="Miniatura">
-                        <span>${idx + 1}. ${info.title}</span>
-                    </button>
-                    <button class="btn btn-danger" onclick="removeQueueItem(${idx})" style="padding: 2px 6px; font-size:11px;">X</button>
-                </div>
-            `;
-        });
-    } else {
-        queueList.innerHTML = '<div style="padding: 5px; font-size: 12px; color: #888;">La lista está vacía.</div>';
-    }
-
-    const baseList = document.getElementById('baseList');
-    if (data.basePlaylistId) {
-        let indiceActual = data.basePlaylistIndex || 0;
-        let itemsSimuladosHtml = '';
-        
-        if (ytPlayer && typeof ytPlayer.getPlaylist === 'function') {
-            let playlistIds = ytPlayer.getPlaylist();
-            if (playlistIds && playlistIds.length > 0) {
-                playlistIds.forEach((vId, i) => {
-                    itemsSimuladosHtml += `
-                        <div class="list-item" style="border-bottom: 1px solid #222;">
-                            <div class="video-thumb-title" style="cursor:default;">
-                                <img src="https://img.youtube.com/vi/${vId}/mqdefault.jpg" alt="Mini">
-                                <span style="${i === indiceActual ? 'color: #3b82f6; font-weight: bold;' : ''}">[${i}] ID: ${vId}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                itemsSimuladosHtml = `<div style="padding: 8px; font-size: 12px; color: #aaa;">Reproduciendo desde YouTube (Índice: ${indiceActual})</div>`;
-            }
-        } else {
-            itemsSimuladosHtml = `<div style="padding: 8px; font-size: 12px; color: #aaa;">Playlist ID: ${data.basePlaylistId} (Índice: ${indiceActual})</div>`;
-        }
-
-        baseList.innerHTML = `
-            <div class="playlist-active-container" id="acordeonPlaylist">
-                <div class="playlist-active-header" onclick="toggleAcordeonPlaylist()">
-                    <span>Playlist Activa (Índice: ${indiceActual})</span>
-                </div>
-                <div class="playlist-items-list">
-                    ${itemsSimuladosHtml}
-                </div>
-            </div>
-        `;
-    } else {
-        baseList.innerHTML = '<div style="font-size: 13px; color: #888;">Playlist no configurada.</div>';
-    }
+function toggleHUD() {
+    document.getElementById('ui-hud').classList.toggle('hidden');
 }
 </script>
 </body>
