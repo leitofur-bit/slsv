@@ -1,163 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Smart TV - Media Dashboard</title>
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1c29 0%, #08090d 100%); font-family: 'Segoe UI', Arial, sans-serif; color: white; overflow: hidden; }
-
-        /* HEADER / BARRA SUPERIOR */
-        .top-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 25px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 20; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
-        .logo { font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #fff; }
-        .logo span { color: #ff3b30; }
-        .top-right { display: flex; align-items: center; gap: 20px; font-size: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-
-        /* MAIN DASHBOARD */
-        #dashboard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 80px 50px 40px 50px; z-index: 10; transition: opacity 0.4s, transform 0.4s; }
-        #dashboard.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
-
-        .app-grid { display: flex; gap: 25px; align-items: center; margin-top: 20px; }
-
-        /* TARJETA RSS / NOTICIAS */
-        .news-card { width: 320px; height: 200px; background: #222 url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600') center/cover; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer; }
-        .news-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); }
-        .news-card * { position: relative; z-index: 2; }
-        .badge { background: #ff9500; color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; }
-        .news-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
-
-        /* APPS */
-        .app-card { width: 160px; height: 200px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 10px 20px rgba(0,0,0,0.4); border: 2px solid transparent; }
-        .app-card img { width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
-        .app-card:hover, .news-card:hover { transform: translateY(-12px) scale(1.05); box-shadow: 0 20px 35px rgba(0,0,0,0.6), 0 0 25px rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.8); }
-
-        .bg-youtube { background: linear-gradient(135deg, #ff0000, #990000); }
-        .bg-twitch { background: linear-gradient(135deg, #9146ff, #4b1b96); }
-        .bg-browser { background: linear-gradient(135deg, #007aff, #004080); }
-        .bg-movies { background: linear-gradient(135deg, #ff2d55, #8e001a); }
-
-        .bottom-nav { margin-top: 40px; display: flex; gap: 15px; }
-        .nav-btn { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 12px 28px; border-radius: 30px; font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); }
-        .nav-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
-
-        /* APPS DE NAVEGACIÓN (YOUTUBE Y TWITCH) */
-        .app-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; background: #0f0f12; padding: 90px 40px 30px 40px; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
-        .app-view.active { opacity: 1; pointer-events: auto; }
-
-        .search-bar { display: flex; gap: 12px; margin-bottom: 25px; }
-        .search-input { flex: 1; padding: 14px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: white; font-size: 16px; outline: none; }
-        
-        .btn-app { padding: 14px 28px; border-radius: 30px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
-        .btn-app:hover { transform: scale(1.05); }
-        .btn-yt-color { background: #ff0000; }
-        .btn-twitch-color { background: #9146ff; }
-        .btn-back { background: rgba(255,255,255,0.2); }
-
-        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; padding-right: 10px; flex: 1; }
-        
-        .media-card { background: rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.25s; border: 2px solid transparent; position: relative; }
-        .media-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 10px 20px rgba(255,255,255,0.2); border-color: #fff; }
-        .media-thumb { width: 100%; height: 125px; object-fit: cover; }
-        .media-info { padding: 12px; }
-        .media-title { font-size: 13px; font-weight: 700; line-height: 1.3; height: 34px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; }
-        .media-sub { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; align-items: center; }
-
-        .live-badge { position: absolute; top: 10px; left: 10px; background: #e50914; color: white; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-
-        /* REPRODUCTOR FULLSCREEN (Z-INDEX Y CONTROL DE EVENTOS MEJORADO) */
-        #media-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #000; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
-        #media-screen.active { opacity: 1; pointer-events: auto; z-index: 25; }
-
-        /* HUD OVERLAY */
-        #ui-hud { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); z-index: 30; transition: transform 0.3s; display: flex; gap: 10px; align-items: center; }
-        #ui-hud.hidden { transform: translateY(100%); }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 14px; outline: none; }
-        .btn-act { padding: 12px 20px; border-radius: 8px; border: none; background: #007aff; color: white; font-weight: bold; cursor: pointer; }
-        
-        #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 22px; font-weight: bold; }
-        #start-overlay.hidden { display: none; }
-    </style>
-</head>
-<body>
-
-    <div id="start-overlay" onclick="initApp()">Haz clic para Encender la TV</div>
-
-    <!-- HEADER -->
-    <div class="top-bar">
-        <div class="logo">MEDIA<span>SL</span></div>
-        <div class="top-right">
-            <span id="channelNameDisplay">Canal: ...</span>
-            <span id="clockDisplay">00:00 PM</span>
-        </div>
-    </div>
-
-    <!-- MAIN DASHBOARD -->
-    <div id="dashboard">
-        <div class="app-grid">
-            <div class="news-card">
-                <span class="badge">Novedades SL</span>
-                <div class="news-title">Bienvenido a MediaSL Smart TV System</div>
-            </div>
-
-            <div class="app-card bg-youtube" onclick="openYouTubeApp()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
-            </div>
-
-            <div class="app-card bg-twitch" onclick="openTwitchApp()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
-            </div>
-
-            <div class="app-card bg-movies" onclick="openApp('movies')">
-                <img src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
-            </div>
-
-            <div class="app-card bg-browser" onclick="openApp('browser')">
-                <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
-            </div>
-        </div>
-
-        <div class="bottom-nav">
-            <div class="nav-btn" onclick="showDashboard()">INICIO</div>
-            <div class="nav-btn" onclick="toggleHUD()">HUD CONTROLES</div>
-        </div>
-    </div>
-
-    <!-- YOUTUBE APP VIEW -->
-    <div id="youtube-app" class="app-view">
-        <div class="search-bar">
-            <button class="btn-app btn-back" onclick="showDashboard()">◀ Menú</button>
-            <input type="text" id="ytQuery" class="search-input" placeholder="Buscar videos o música en YouTube..." onkeydown="if(event.key==='Enter') searchYouTube()">
-            <button class="btn-app btn-yt-color" onclick="searchYouTube()">Buscar</button>
-        </div>
-        <div id="ytResults" class="media-grid"></div>
-    </div>
-
-    <!-- TWITCH APP VIEW -->
-    <div id="twitch-app" class="app-view">
-        <div class="search-bar">
-            <button class="btn-app btn-back" onclick="showDashboard()">◀ Menú</button>
-            <input type="text" id="twitchQuery" class="search-input" placeholder="Buscar canal de Twitch..." onkeydown="if(event.key==='Enter') searchTwitch()">
-            <button class="btn-app btn-twitch-color" onclick="searchTwitch()">Buscar Streamer</button>
-        </div>
-        <div id="twitchResults" class="media-grid"></div>
-    </div>
-
-    <!-- REPRODUCTOR FULLSCREEN CONTAINER -->
-    <div id="media-screen">
-        <div id="yt-player-target"></div>
-    </div>
-
-    <!-- HUD OVERLAY -->
-    <div id="ui-hud" class="hidden">
-        <input type="text" id="urlInput" placeholder="Pega URL de YouTube, Twitch, .mp4 o película...">
-        <button class="btn-act" onclick="sendURL()">Reproducir</button>
-        <button class="btn-act" style="background: #34c759;" onclick="showDashboard()">Ir al Menú</button>
-    </div>
-
-<script>
 // FIREBASE CONFIG
 const firebaseConfig = { databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
@@ -173,13 +13,7 @@ function initApp() {
     document.getElementById('start-overlay').classList.add('hidden');
     updateClock();
     setInterval(updateClock, 1000);
-    
-    // Inicialización limpia de YouTube
-    ytPlayer = new YT.Player('yt-player-target', {
-        height: '100%', width: '100%', videoId: '',
-        playerVars: { 'autoplay': 1, 'controls': 1, 'enablejsapi': 1 },
-        events: { 'onReady': () => listenFirebase() }
-    });
+    listenFirebase();
 }
 
 function updateClock() {
@@ -199,14 +33,25 @@ function listenFirebase() {
     });
 }
 
+// DESTRUCCIÓN COMPLETA Y LIMPIEZA
 function stopAndClearPlayer() {
-    // Detiene el video de YouTube si está sonando
-    if (ytPlayer && ytPlayer.stopVideo) {
-        try { ytPlayer.stopVideo(); } catch(e){}
+    // 1. Destruir la API de YouTube si existe
+    if (ytPlayer) {
+        try {
+            if (typeof ytPlayer.destroy === 'function') {
+                ytPlayer.destroy();
+            }
+        } catch(e) {}
+        ytPlayer = null;
     }
-    // Oculta el contenedor del reproductor y bloquea interacciones
+
+    // 2. Vaciar completamente el contenedor HTML
     const screen = document.getElementById('media-screen');
+    screen.innerHTML = '<div id="yt-player-target"></div>'; // Deja la etiqueta lista para el próximo video
+
+    // 3. Ocultar la pantalla y deshabilitar clics
     screen.classList.remove('active');
+    screen.style.display = 'none';
     screen.style.pointerEvents = 'none';
 }
 
@@ -216,7 +61,7 @@ function loadURL(url) {
     const ytApp = document.getElementById('youtube-app');
     const twitchApp = document.getElementById('twitch-app');
 
-    // Si la orden es 'home' o URL vacía, regresamos al menú sin reproducir nada
+    // Volver a Home
     if (!url || url === 'home') {
         stopAndClearPlayer();
         dashboard.classList.remove('hidden');
@@ -225,43 +70,60 @@ function loadURL(url) {
         return;
     }
 
-    // Ocultar vistas de apps y menú
+    // Ocultar menús
     dashboard.classList.add('hidden');
     ytApp.classList.remove('active');
     twitchApp.classList.remove('active');
 
     // Activar reproductor
+    screen.style.display = 'block';
     screen.classList.add('active');
     screen.style.pointerEvents = 'auto';
 
     // YouTube
     if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
         const videoId = RegExp.$1;
-        // Restaurar contenedor YouTube si fue sobreescrito por un iframe externo
-        if (!document.getElementById('yt-player-target')) {
-            screen.innerHTML = '<div id="yt-player-target"></div>';
-            ytPlayer = new YT.Player('yt-player-target', {
-                height: '100%', width: '100%', videoId: videoId,
-                playerVars: { 'autoplay': 1, 'controls': 1 }
-            });
-        } else if (ytPlayer && ytPlayer.loadVideoById) {
-            ytPlayer.loadVideoById(videoId);
+        
+        // Destruir reproductor anterior si existía
+        if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+            ytPlayer.destroy();
         }
+
+        screen.innerHTML = '<div id="yt-player-target"></div>';
+
+        ytPlayer = new YT.Player('yt-player-target', {
+            height: '100%',
+            width: '100%',
+            videoId: videoId,
+            playerVars: { 'autoplay': 1, 'controls': 1 },
+            events: {
+                'onReady': (event) => event.target.playVideo()
+            }
+        });
     } 
     // Twitch
     else if (url.match(/twitch\.tv\/([^&]+)/)) {
         const channelName = RegExp.$1;
-        if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+        stopAndClearPlayer();
+        screen.style.display = 'block';
+        screen.classList.add('active');
+        screen.style.pointerEvents = 'auto';
         screen.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${window.location.hostname}&autoplay=true" width="100%" height="100%" frameborder="0" allowfullscreen style="border:none;"></iframe>`;
     } 
-    // Videos Directos (.mp4)
+    // Direct MP4
     else if (url.match(/\.(mp4|webm|ogv)$/i)) {
-        if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+        stopAndClearPlayer();
+        screen.style.display = 'block';
+        screen.classList.add('active');
+        screen.style.pointerEvents = 'auto';
         screen.innerHTML = `<video src="${url}" width="100%" height="100%" controls autoplay style="background:#000;"></video>`;
     } 
-    // Embebido Generico / Web
+    // Web Generica
     else {
-        if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+        stopAndClearPlayer();
+        screen.style.display = 'block';
+        screen.classList.add('active');
+        screen.style.pointerEvents = 'auto';
         screen.innerHTML = `<iframe src="${url}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="border:none;"></iframe>`;
     }
 }
@@ -440,6 +302,3 @@ function showDashboard() {
 function toggleHUD() {
     document.getElementById('ui-hud').classList.toggle('hidden');
 }
-</script>
-</body>
-</html>
