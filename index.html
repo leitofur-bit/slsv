@@ -29,11 +29,79 @@
         .badge { background: #ff9500; color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; }
         .news-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
 
-        .app-card { width: 160px; height: 200px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.4); border: 2px solid transparent; }
-        .app-card img { width: 80px; height: 80px; object-fit: contain; }
-        .app-card:hover { transform: translateY(-10px) scale(1.05); border-color: rgba(255,255,255,0.8); }
+        /* TARJETAS CON ANIMACION / VIDEO HOVER */
+        .app-card { 
+            width: 160px; 
+            height: 200px; 
+            border-radius: 24px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4); 
+            border: 2px solid transparent; 
+            position: relative; 
+            overflow: hidden; 
+        }
 
-        .bg-youtube { background: linear-gradient(135deg, #ff0000, #990000); }
+        .app-card img { 
+            width: 80px; 
+            height: 80px; 
+            object-fit: contain; 
+            position: relative; 
+            z-index: 3; 
+            transition: transform 0.3s;
+        }
+
+        /* Video de fondo oculto por defecto */
+        .app-card video { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            opacity: 0; 
+            z-index: 1; 
+            transition: opacity 0.4s ease, transform 0.4s ease; 
+            transform: scale(1.1);
+            filter: brightness(0.8) contrast(1.1);
+        }
+
+        /* Overlay oscuro sobre el video para resaltar el icono */
+        .app-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Efecto al acercar el mouse */
+        .app-card:hover { 
+            transform: translateY(-12px) scale(1.08); 
+            border-color: rgba(255,255,255,0.9); 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+        }
+
+        .app-card:hover img {
+            transform: scale(1.15);
+        }
+
+        .app-card:hover video { 
+            opacity: 0.65; 
+            transform: scale(1);
+        }
+
+        .app-card:hover::after {
+            opacity: 1;
+        }
+
+        .bg-youtube { background: linear-gradient(135deg, #ff0000, #800000); }
         .bg-twitch { background: linear-gradient(135deg, #9146ff, #4b1b96); }
         .bg-browser { background: linear-gradient(135deg, #007aff, #004080); }
         .bg-movies { background: linear-gradient(135deg, #ff2d55, #8e001a); }
@@ -99,23 +167,27 @@
                 <div class="news-title">Bienvenido a MediaSL Smart TV System</div>
             </div>
 
-            <!-- BOTON YOUTUBE -->
+            <!-- CARD YOUTUBE CON VIDEO HOVER -->
             <div class="app-card bg-youtube" onclick="openYouTubeApp()">
+                <video src="https://assets.mixkit.co/videos/preview/mixkit-tree-branches-in-the-breeze-1188-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
             </div>
 
-            <!-- BOTON TWITCH -->
+            <!-- CARD TWITCH CON VIDEO HOVER -->
             <div class="app-card bg-twitch" onclick="openTwitchApp()">
+                <video src="https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-controller-playing-video-games-41235-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
             </div>
 
-            <!-- BOTON CINE / PELICULAS -->
+            <!-- CARD PELICULAS CON VIDEO HOVER -->
             <div class="app-card bg-movies" onclick="openMoviesApp()">
+                <video src="https://assets.mixkit.co/videos/preview/mixkit-vintage-film-projector-in-action-40280-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
             </div>
 
-            <!-- BOTON NAVEGADOR WEB -->
+            <!-- CARD BROWSER CON VIDEO HOVER -->
             <div class="app-card bg-browser" onclick="openBrowserApp()">
+                <video src="https://assets.mixkit.co/videos/preview/mixkit-working-overtime-in-a-futuristic-office-43301-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
             </div>
         </div>
@@ -193,7 +265,7 @@
                 if (data.currentUrl === 'home' || !data.currentUrl) {
                     renderDashboardView();
                 } else {
-                    renderPlayerView(data.currentUrl);
+                    renderPlayerView(data.currentUrl, data.timestamp);
                 }
             });
         }
@@ -212,7 +284,7 @@
             document.getElementById('dashboard').classList.remove('hidden');
         }
 
-        function renderPlayerView(url) {
+        function renderPlayerView(url, timestamp) {
             const screen = document.getElementById('media-screen');
             
             document.getElementById('dashboard').classList.add('hidden');
@@ -224,9 +296,15 @@
             document.getElementById('exitBtn').style.display = 'inline-block';
             screen.classList.add('active');
 
+            let startSeconds = 0;
+            if (timestamp) {
+                startSeconds = Math.floor((Date.now() - timestamp) / 1000);
+                if (startSeconds < 0) startSeconds = 0;
+            }
+
             if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
                 const videoId = RegExp.$1;
-                screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+                screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&start=${startSeconds}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
             } 
             else if (url.match(/twitch\.tv\/([^&]+)/)) {
                 const channelName = RegExp.$1;
@@ -234,7 +312,7 @@
                 screen.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${domain}&autoplay=true" allowfullscreen></iframe>`;
             } 
             else if (url.match(/\.(mp4|webm|ogv)$/i)) {
-                screen.innerHTML = `<video src="${url}" controls autoplay style="background:#000;"></video>`;
+                screen.innerHTML = `<video src="${url}#t=${startSeconds}" controls autoplay style="background:#000;"></video>`;
             } 
             else {
                 screen.innerHTML = `<iframe src="${url}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
@@ -250,7 +328,7 @@
 
         function showDashboard() {
             closeAppView();
-            dbRef.set({ currentUrl: 'home' });
+            dbRef.set({ currentUrl: 'home', timestamp: Date.now() });
         }
 
         // ================= YOUTUBE APP =================
@@ -313,7 +391,10 @@
         }
 
         function playYtVideo(videoId) {
-            dbRef.set({ currentUrl: `https://www.youtube.com/watch?v=${videoId}` });
+            dbRef.set({ 
+                currentUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                timestamp: Date.now()
+            });
         }
 
         // ================= TWITCH APP =================
@@ -347,12 +428,14 @@
         }
 
         function playTwitchStream(channelName) {
-            dbRef.set({ currentUrl: `https://www.twitch.tv/${channelName}` });
+            dbRef.set({ 
+                currentUrl: `https://www.twitch.tv/${channelName}`,
+                timestamp: Date.now()
+            });
         }
 
         // ================= CINE APP (ROJO) =================
         function openMoviesApp() {
-            // Carga búsquedas de trailers o cine en vivo en YouTube directamente
             document.getElementById('dashboard').classList.add('hidden');
             document.getElementById('youtube-app').classList.add('active');
             document.getElementById('ytQuery').value = 'Peliculas completas en español';
@@ -376,13 +459,21 @@
                     input = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(input);
                 }
             }
-            dbRef.set({ currentUrl: input });
+            dbRef.set({ 
+                currentUrl: input,
+                timestamp: Date.now()
+            });
         }
 
         // ================= AUXILIARES =================
         function sendURL() {
             const url = document.getElementById('urlInput').value.trim();
-            if (url) dbRef.set({ currentUrl: url });
+            if (url) {
+                dbRef.set({ 
+                    currentUrl: url,
+                    timestamp: Date.now()
+                });
+            }
             document.getElementById('urlInput').value = '';
         }
 
