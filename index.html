@@ -51,6 +51,7 @@
         .btn-app { padding: 14px 28px; border-radius: 30px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
         .btn-yt-color { background: #ff0000; }
         .btn-twitch-color { background: #9146ff; }
+        .btn-browser-color { background: #007aff; }
         .btn-back { background: rgba(255,255,255,0.2); }
         .btn-back:hover { background: rgba(255,255,255,0.4); }
 
@@ -98,19 +99,23 @@
                 <div class="news-title">Bienvenido a MediaSL Smart TV System</div>
             </div>
 
+            <!-- BOTON YOUTUBE -->
             <div class="app-card bg-youtube" onclick="openYouTubeApp()">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
             </div>
 
+            <!-- BOTON TWITCH -->
             <div class="app-card bg-twitch" onclick="openTwitchApp()">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
             </div>
 
-            <div class="app-card bg-movies" onclick="toggleHUD()">
+            <!-- BOTON CINE / PELICULAS -->
+            <div class="app-card bg-movies" onclick="openMoviesApp()">
                 <img src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
             </div>
 
-            <div class="app-card bg-browser" onclick="toggleHUD()">
+            <!-- BOTON NAVEGADOR WEB -->
+            <div class="app-card bg-browser" onclick="openBrowserApp()">
                 <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
             </div>
         </div>
@@ -141,6 +146,15 @@
         <div id="twitchResults" class="media-grid"></div>
     </div>
 
+    <!-- BROWSER APP VIEW -->
+    <div id="browser-app" class="app-view">
+        <div class="search-bar">
+            <button class="btn-app btn-back" onclick="closeAppView()">◀ Menú</button>
+            <input type="text" id="webQuery" class="search-input" placeholder="Escribe una URL o busca en la Web (ej: wikipedia.org)..." onkeydown="if(event.key==='Enter') launchWebSearch()">
+            <button class="btn-app btn-browser-color" onclick="launchWebSearch()">Navegar</button>
+        </div>
+    </div>
+
     <!-- REPRODUCTOR DE VIDEO / WEBS -->
     <div id="media-screen"></div>
 
@@ -152,7 +166,6 @@
     </div>
 
     <script>
-        // FIREBASE CONFIG
         const firebaseConfig = { databaseURL: "https://sl-tv-sync-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
 
@@ -192,6 +205,7 @@
             
             document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.remove('active');
+            document.getElementById('browser-app').classList.remove('active');
             document.getElementById('ui-hud').classList.add('hidden');
             document.getElementById('exitBtn').style.display = 'none';
 
@@ -204,27 +218,24 @@
             document.getElementById('dashboard').classList.add('hidden');
             document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.remove('active');
+            document.getElementById('browser-app').classList.remove('active');
             document.getElementById('ui-hud').classList.add('hidden');
 
             document.getElementById('exitBtn').style.display = 'inline-block';
             screen.classList.add('active');
 
-            // 1. YouTube
             if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
                 const videoId = RegExp.$1;
                 screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
             } 
-            // 2. Twitch
             else if (url.match(/twitch\.tv\/([^&]+)/)) {
                 const channelName = RegExp.$1;
                 const domain = window.location.hostname || 'localhost';
                 screen.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${domain}&autoplay=true" allowfullscreen></iframe>`;
             } 
-            // 3. MP4 Directo
             else if (url.match(/\.(mp4|webm|ogv)$/i)) {
                 screen.innerHTML = `<video src="${url}" controls autoplay style="background:#000;"></video>`;
             } 
-            // 4. Web Generica
             else {
                 screen.innerHTML = `<iframe src="${url}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
             }
@@ -233,6 +244,7 @@
         function closeAppView() {
             document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.remove('active');
+            document.getElementById('browser-app').classList.remove('active');
             document.getElementById('dashboard').classList.remove('hidden');
         }
 
@@ -241,33 +253,22 @@
             dbRef.set({ currentUrl: 'home' });
         }
 
-        // ================= YOUTUBE APP LOGIC (HASTA 50 RESULTADOS) =================
+        // ================= YOUTUBE APP =================
         function openYouTubeApp() {
             document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('twitch-app').classList.remove('active');
             document.getElementById('youtube-app').classList.add('active');
             fetchTrendingYouTube();
         }
 
-        const PIPED_APIS = [
-            'https://pipedapi.kavin.rocks',
-            'https://api.piped.private.coffee',
-            'https://pipedapi.mha.fi'
-        ];
+        const PIPED_APIS = ['https://pipedapi.kavin.rocks', 'https://api.piped.private.coffee', 'https://pipedapi.mha.fi'];
 
         function fetchTrendingYouTube() {
-            const resultsContainer = document.getElementById('ytResults');
-            resultsContainer.innerHTML = '<div style="color:#aaa;">Cargando populares...</div>';
+            document.getElementById('ytResults').innerHTML = '<div style="color:#aaa;">Cargando populares...</div>';
             tryPipedTrending(0);
         }
 
         function tryPipedTrending(index) {
-            const resultsContainer = document.getElementById('ytResults');
-            if (index >= PIPED_APIS.length) {
-                resultsContainer.innerHTML = '<div style="color:#888;">No se pudieron cargar las tendencias. Usa la barra superior.</div>';
-                return;
-            }
-
+            if (index >= PIPED_APIS.length) return;
             fetch(`${PIPED_APIS[index]}/trending?region=US`)
                 .then(res => res.json())
                 .then(data => renderPipedGrid(data))
@@ -277,53 +278,34 @@
         function searchYouTube() {
             const q = document.getElementById('ytQuery').value.trim();
             if (!q) return;
-
-            const resultsContainer = document.getElementById('ytResults');
-            resultsContainer.innerHTML = '<div style="color:#aaa;">Buscando más resultados...</div>';
+            document.getElementById('ytResults').innerHTML = '<div style="color:#aaa;">Buscando...</div>';
             tryPipedSearch(q, 0);
         }
 
         function tryPipedSearch(query, index) {
-            const resultsContainer = document.getElementById('ytResults');
-            if (index >= PIPED_APIS.length) {
-                resultsContainer.innerHTML = '<div style="color:#e50914;">Error de red al buscar. Intenta otra vez.</div>';
-                return;
-            }
-
+            if (index >= PIPED_APIS.length) return;
             fetch(`${PIPED_APIS[index]}/search?q=${encodeURIComponent(query)}&filter=videos`)
                 .then(res => res.json())
-                .then(data => {
-                    if (data.items) renderPipedGrid(data.items);
-                    else tryPipedSearch(query, index + 1);
-                })
+                .then(data => renderPipedGrid(data.items))
                 .catch(() => tryPipedSearch(query, index + 1));
         }
 
         function renderPipedGrid(videos) {
             const resultsContainer = document.getElementById('ytResults');
             resultsContainer.innerHTML = '';
+            if (!videos || videos.length === 0) return;
 
-            if (!videos || videos.length === 0) {
-                resultsContainer.innerHTML = '<div style="color:#aaa;">No se encontraron resultados.</div>';
-                return;
-            }
-
-            // Aumentado a 50 videos
             videos.slice(0, 50).forEach(video => {
                 const urlMatch = video.url ? video.url.match(/v=([^&]+)/) : null;
                 const videoId = urlMatch ? urlMatch[1] : (video.id || '');
                 if (!videoId) return;
 
-                const title = video.title || 'Video de YouTube';
-                const author = video.uploaderName || video.uploader || 'YouTube';
-                const thumb = video.thumbnail || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-
                 resultsContainer.innerHTML += `
                     <div class="media-card" onclick="playYtVideo('${videoId}')">
-                        <img class="media-thumb" src="${thumb}" alt="thumb">
+                        <img class="media-thumb" src="${video.thumbnail || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}" alt="thumb">
                         <div class="media-info">
-                            <div class="media-title">${title}</div>
-                            <div class="media-sub" style="font-size:11px;color:#aaa;">${author}</div>
+                            <div class="media-title">${video.title || 'Video'}</div>
+                            <div class="media-sub" style="font-size:11px;color:#aaa;">${video.uploaderName || 'YouTube'}</div>
                         </div>
                     </div>
                 `;
@@ -334,10 +316,9 @@
             dbRef.set({ currentUrl: `https://www.youtube.com/watch?v=${videoId}` });
         }
 
-        // ================= TWITCH APP LOGIC =================
+        // ================= TWITCH APP =================
         function openTwitchApp() {
             document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.add('active');
             fallbackTwitchStreams();
         }
@@ -348,10 +329,9 @@
             resultsContainer.innerHTML = '';
 
             popularStreamers.forEach(user => {
-                const thumb = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${user}-320x180.jpg`;
                 resultsContainer.innerHTML += `
                     <div class="media-card" onclick="playTwitchStream('${user}')">
-                        <img class="media-thumb" src="${thumb}" onerror="this.src='https://via.placeholder.com/320x180?text=Twitch+Live'" alt="thumb">
+                        <img class="media-thumb" src="https://static-cdn.jtvnw.net/previews-ttv/live_user_${user}-320x180.jpg" onerror="this.src='https://via.placeholder.com/320x180?text=Twitch+Live'">
                         <div class="media-info">
                             <div class="media-title" style="color:#9146ff;">${user}</div>
                             <div class="media-sub" style="font-size:11px;color:#aaa;">En Vivo</div>
@@ -363,12 +343,40 @@
 
         function searchTwitch() {
             const q = document.getElementById('twitchQuery').value.trim().toLowerCase().replace(/\s+/g, '');
-            if (!q) return;
-            playTwitchStream(q);
+            if (q) playTwitchStream(q);
         }
 
         function playTwitchStream(channelName) {
             dbRef.set({ currentUrl: `https://www.twitch.tv/${channelName}` });
+        }
+
+        // ================= CINE APP (ROJO) =================
+        function openMoviesApp() {
+            // Carga búsquedas de trailers o cine en vivo en YouTube directamente
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('youtube-app').classList.add('active');
+            document.getElementById('ytQuery').value = 'Peliculas completas en español';
+            searchYouTube();
+        }
+
+        // ================= BROWSER APP (AZUL) =================
+        function openBrowserApp() {
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('browser-app').classList.add('active');
+        }
+
+        function launchWebSearch() {
+            let input = document.getElementById('webQuery').value.trim();
+            if (!input) return;
+
+            if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                if (input.includes('.')) {
+                    input = 'https://' + input;
+                } else {
+                    input = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(input);
+                }
+            }
+            dbRef.set({ currentUrl: input });
         }
 
         // ================= AUXILIARES =================
