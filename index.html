@@ -29,7 +29,7 @@
         .badge { background: #ff9500; color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; }
         .news-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
 
-        /* TARJETAS CON PREVISUALIZACION ANIMADA EN HOVER */
+        /* TARJETAS DE APPS */
         .app-card { 
             width: 160px; 
             height: 200px; 
@@ -44,6 +44,7 @@
             border: 2px solid transparent; 
             position: relative; 
             overflow: hidden; 
+            background-color: #111;
         }
 
         .app-card img.app-icon { 
@@ -55,7 +56,7 @@
             transition: transform 0.3s;
         }
 
-        /* CAPA DE PREVISUALIZACION DE GIFS */
+        /* CAPA DEL GIF DE FONDO */
         .preview-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -63,27 +64,15 @@
             background-position: center;
             opacity: 0;
             z-index: 1;
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
             transform: scale(1.1);
-            filter: brightness(0.7) contrast(1.1);
         }
 
-        /* Overlay oscuro para legibilidad del icono */
-        .app-card::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            z-index: 2;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        /* GIFS DIRECTOS SIN BLOQUEO DE REFERER */
-        .yt-preview { background-image: url('https://c.tenor.com/a42A8xZ_7W8AAAAC/youtube-loading.gif'); }
-        .twitch-preview { background-image: url('https://c.tenor.com/b_x146O8TbgAAAAC/twitch-stream.gif'); }
-        .movies-preview { background-image: url('https://c.tenor.com/vHq066xJkE0AAAAC/cinema-movie.gif'); }
-        .browser-preview { background-image: url('https://c.tenor.com/7Y9HnJkE-eIAAAAC/internet-web.gif'); }
+        /* CAPA DE COLOR BASE */
+        .bg-youtube::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #ff0000, #800000); z-index: 2; transition: opacity 0.3s; }
+        .bg-twitch::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #9146ff, #4b1b96); z-index: 2; transition: opacity 0.3s; }
+        .bg-movies::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #ff2d55, #8e001a); z-index: 2; transition: opacity 0.3s; }
+        .bg-browser::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #007aff, #004080); z-index: 2; transition: opacity 0.3s; }
 
         /* EFECTO HOVER */
         .app-card:hover { 
@@ -96,19 +85,20 @@
             transform: scale(1.15);
         }
 
+        .app-card:hover::before {
+            opacity: 0;
+        }
+
         .app-card:hover .preview-bg {
             opacity: 1;
             transform: scale(1);
         }
 
-        .app-card:hover::after {
-            opacity: 1;
-        }
-
-        .bg-youtube { background: linear-gradient(135deg, #ff0000, #800000); }
-        .bg-twitch { background: linear-gradient(135deg, #9146ff, #4b1b96); }
-        .bg-browser { background: linear-gradient(135deg, #007aff, #004080); }
-        .bg-movies { background: linear-gradient(135deg, #ff2d55, #8e001a); }
+        /* URLS DE PREVISUALIZACION */
+        .yt-preview { background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z2N3J3eXk0bnRsbW1mZmx6ZnR0YmU3bnptMmEwbXlsOHBneCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41K3o5TzDQByEYxy/giphy.gif'); }
+        .twitch-preview { background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaGcxcnptb3BhNGdqMnlmcjVsZmNqOHFsdmdxbXZ3enpsb3pxNmY5dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/13Hgw8T855C208/giphy.gif'); }
+        .movies-preview { background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z6cWNkNmpscnQ3ZmFsZGV5cGtrZnN2ZnR2Ym4wZmllNm4zcmlhYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7rc0qU6b5hne8pps/giphy.gif'); }
+        .browser-preview { background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExejE2czFndW03dzRzb24wbTBxZXRiaGZidWV6NXByaWhkMmNmbmIydCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT9IgzoKnwFNmISR8I/giphy.gif'); }
 
         .bottom-nav { margin-top: 40px; display: flex; gap: 15px; }
         .nav-btn { background: rgba(255,255,255,0.1); padding: 12px 28px; border-radius: 30px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
