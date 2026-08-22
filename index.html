@@ -43,7 +43,7 @@
         .nav-btn:hover { background: rgba(255,255,255,0.3); }
 
         /* VISTAS APPS */
-        .app-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; background: #0f0f12; padding: 90px 40px 30px 40px; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+        .app-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; background: #0f0f12; padding: 90px 40px 30px 40px; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .app-view.active { opacity: 1; pointer-events: auto; }
 
         .search-bar { display: flex; gap: 12px; margin-bottom: 25px; }
@@ -52,8 +52,9 @@
         .btn-yt-color { background: #ff0000; }
         .btn-twitch-color { background: #9146ff; }
         .btn-back { background: rgba(255,255,255,0.2); }
+        .btn-back:hover { background: rgba(255,255,255,0.4); }
 
-        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; }
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; padding-bottom: 20px; }
         .media-card { background: rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; cursor: pointer; border: 2px solid transparent; position: relative; }
         .media-card:hover { transform: translateY(-5px); border-color: #fff; }
         .media-thumb { width: 100%; height: 125px; object-fit: cover; }
@@ -123,7 +124,7 @@
     <!-- YOUTUBE APP VIEW -->
     <div id="youtube-app" class="app-view">
         <div class="search-bar">
-            <button class="btn-app btn-back" onclick="showDashboard()">◀ Menú</button>
+            <button class="btn-app btn-back" onclick="closeAppView()">◀ Menú</button>
             <input type="text" id="ytQuery" class="search-input" placeholder="Buscar videos en YouTube..." onkeydown="if(event.key==='Enter') searchYouTube()">
             <button class="btn-app btn-yt-color" onclick="searchYouTube()">Buscar</button>
         </div>
@@ -133,7 +134,7 @@
     <!-- TWITCH APP VIEW -->
     <div id="twitch-app" class="app-view">
         <div class="search-bar">
-            <button class="btn-app btn-back" onclick="showDashboard()">◀ Menú</button>
+            <button class="btn-app btn-back" onclick="closeAppView()">◀ Menú</button>
             <input type="text" id="twitchQuery" class="search-input" placeholder="Buscar streamer..." onkeydown="if(event.key==='Enter') searchTwitch()">
             <button class="btn-app btn-twitch-color" onclick="searchTwitch()">Buscar Streamer</button>
         </div>
@@ -189,13 +190,11 @@
             screen.innerHTML = '';
             screen.classList.remove('active');
             
-            // Ocultar apps secundarias
             document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.remove('active');
             document.getElementById('ui-hud').classList.add('hidden');
             document.getElementById('exitBtn').style.display = 'none';
 
-            // Mostrar Dashboard
             document.getElementById('dashboard').classList.remove('hidden');
         }
 
@@ -215,7 +214,7 @@
                 const videoId = RegExp.$1;
                 screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
             } 
-            // 2. Twitch Stream
+            // 2. Twitch
             else if (url.match(/twitch\.tv\/([^&]+)/)) {
                 const channelName = RegExp.$1;
                 const domain = window.location.hostname || 'localhost';
@@ -231,11 +230,18 @@
             }
         }
 
+        function closeAppView() {
+            document.getElementById('youtube-app').classList.remove('active');
+            document.getElementById('twitch-app').classList.remove('active');
+            document.getElementById('dashboard').classList.remove('hidden');
+        }
+
         function showDashboard() {
+            closeAppView();
             dbRef.set({ currentUrl: 'home' });
         }
 
-        // ================= YOUTUBE APP LOGIC (API PIPED MEJORADA) =================
+        // ================= YOUTUBE APP LOGIC (HASTA 50 RESULTADOS) =================
         function openYouTubeApp() {
             document.getElementById('dashboard').classList.add('hidden');
             document.getElementById('twitch-app').classList.remove('active');
@@ -258,7 +264,7 @@
         function tryPipedTrending(index) {
             const resultsContainer = document.getElementById('ytResults');
             if (index >= PIPED_APIS.length) {
-                resultsContainer.innerHTML = '<div style="color:#888;">No se pudieron cargar las tendencias. Usa la barra para buscar directamente.</div>';
+                resultsContainer.innerHTML = '<div style="color:#888;">No se pudieron cargar las tendencias. Usa la barra superior.</div>';
                 return;
             }
 
@@ -273,14 +279,14 @@
             if (!q) return;
 
             const resultsContainer = document.getElementById('ytResults');
-            resultsContainer.innerHTML = '<div style="color:#aaa;">Buscando...</div>';
+            resultsContainer.innerHTML = '<div style="color:#aaa;">Buscando más resultados...</div>';
             tryPipedSearch(q, 0);
         }
 
         function tryPipedSearch(query, index) {
             const resultsContainer = document.getElementById('ytResults');
             if (index >= PIPED_APIS.length) {
-                resultsContainer.innerHTML = '<div style="color:#e50914;">Error de red. Intenta buscar de nuevo.</div>';
+                resultsContainer.innerHTML = '<div style="color:#e50914;">Error de red al buscar. Intenta otra vez.</div>';
                 return;
             }
 
@@ -302,8 +308,8 @@
                 return;
             }
 
-            videos.slice(0, 16).forEach(video => {
-                // Extrae el ID del video limpia y correctamente
+            // Aumentado a 50 videos
+            videos.slice(0, 50).forEach(video => {
                 const urlMatch = video.url ? video.url.match(/v=([^&]+)/) : null;
                 const videoId = urlMatch ? urlMatch[1] : (video.id || '');
                 if (!videoId) return;
