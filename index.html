@@ -29,7 +29,7 @@
         .badge { background: #ff9500; color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; }
         .news-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
 
-        /* TARJETAS CON ANIMACION / VIDEO HOVER */
+        /* TARJETAS CON ANIMACION HOVER CSS */
         .app-card { 
             width: 160px; 
             height: 200px; 
@@ -47,58 +47,48 @@
         }
 
         .app-card img { 
-            width: 80px; 
-            height: 80px; 
+            width: 75px; 
+            height: 75px; 
             object-fit: contain; 
             position: relative; 
             z-index: 3; 
             transition: transform 0.3s;
         }
 
-        /* Video de fondo oculto por defecto */
-        .app-card video { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            opacity: 0; 
-            z-index: 1; 
-            transition: opacity 0.4s ease, transform 0.4s ease; 
-            transform: scale(1.1);
-            filter: brightness(0.8) contrast(1.1);
-        }
-
-        /* Overlay oscuro sobre el video para resaltar el icono */
-        .app-card::after {
+        /* EFECTO DE ANIMACIÓN DE FONDO EN HOVER */
+        .app-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            z-index: 2;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
             opacity: 0;
-            transition: opacity 0.3s;
+            transform: scale(0.5);
+            transition: opacity 0.4s, transform 0.4s;
+            z-index: 1;
         }
 
-        /* Efecto al acercar el mouse */
         .app-card:hover { 
             transform: translateY(-12px) scale(1.08); 
             border-color: rgba(255,255,255,0.9); 
-            box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
         }
 
         .app-card:hover img {
-            transform: scale(1.15);
+            transform: scale(1.2) rotate(-3deg);
         }
 
-        .app-card:hover video { 
-            opacity: 0.65; 
-            transform: scale(1);
-        }
-
-        .app-card:hover::after {
+        .app-card:hover::before {
             opacity: 1;
+            transform: scale(1);
+            animation: pulseBg 1.8s infinite alternate;
+        }
+
+        @keyframes pulseBg {
+            0% { transform: scale(0.9); opacity: 0.2; }
+            100% { transform: scale(1.2); opacity: 0.6; }
         }
 
         .bg-youtube { background: linear-gradient(135deg, #ff0000, #800000); }
@@ -167,27 +157,19 @@
                 <div class="news-title">Bienvenido a MediaSL Smart TV System</div>
             </div>
 
-            <!-- CARD YOUTUBE CON VIDEO HOVER -->
             <div class="app-card bg-youtube" onclick="openYouTubeApp()">
-                <video src="https://assets.mixkit.co/videos/preview/mixkit-tree-branches-in-the-breeze-1188-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
             </div>
 
-            <!-- CARD TWITCH CON VIDEO HOVER -->
             <div class="app-card bg-twitch" onclick="openTwitchApp()">
-                <video src="https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-controller-playing-video-games-41235-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
             </div>
 
-            <!-- CARD PELICULAS CON VIDEO HOVER -->
             <div class="app-card bg-movies" onclick="openMoviesApp()">
-                <video src="https://assets.mixkit.co/videos/preview/mixkit-vintage-film-projector-in-action-40280-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
             </div>
 
-            <!-- CARD BROWSER CON VIDEO HOVER -->
             <div class="app-card bg-browser" onclick="openBrowserApp()">
-                <video src="https://assets.mixkit.co/videos/preview/mixkit-working-overtime-in-a-futuristic-office-43301-large.mp4" autoplay loop muted playsinline></video>
                 <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
             </div>
         </div>
