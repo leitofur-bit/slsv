@@ -55,7 +55,7 @@
             transition: transform 0.3s;
         }
 
-        /* CAPA DE PREVISUALIZACION DE VIDEO/ANIMACION */
+        /* CAPA DE PREVISUALIZACION DE GIFS */
         .preview-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -68,22 +68,22 @@
             filter: brightness(0.7) contrast(1.1);
         }
 
-        /* Overlay oscuro para mantener visible el icono principal */
+        /* Overlay oscuro para legibilidad del icono */
         .app-card::after {
             content: '';
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.25);
+            background: rgba(0, 0, 0, 0.3);
             z-index: 2;
             opacity: 0;
             transition: opacity 0.3s;
         }
 
-        /* GIFS / ANIMACIONES TEMATICAS POR TARJETA */
-        .yt-preview { background-image: url('https://media.giphy.com/media/l41K3o5TzDQByEYxy/giphy.gif'); }
-        .twitch-preview { background-image: url('https://media.giphy.com/media/13Hgw8T855C208/giphy.gif'); }
-        .movies-preview { background-image: url('https://media.giphy.com/media/3o7rc0qU6b5hne8pps/giphy.gif'); }
-        .browser-preview { background-image: url('https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif'); }
+        /* GIFS DIRECTOS SIN BLOQUEO DE REFERER */
+        .yt-preview { background-image: url('https://c.tenor.com/a42A8xZ_7W8AAAAC/youtube-loading.gif'); }
+        .twitch-preview { background-image: url('https://c.tenor.com/b_x146O8TbgAAAAC/twitch-stream.gif'); }
+        .movies-preview { background-image: url('https://c.tenor.com/vHq066xJkE0AAAAC/cinema-movie.gif'); }
+        .browser-preview { background-image: url('https://c.tenor.com/7Y9HnJkE-eIAAAAC/internet-web.gif'); }
 
         /* EFECTO HOVER */
         .app-card:hover { 
