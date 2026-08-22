@@ -9,7 +9,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body, html { width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1c29 0%, #08090d 100%); font-family: 'Segoe UI', Arial, sans-serif; color: white; overflow: hidden; }
 
-        /* HEADER & FLOATING CONTROLS */
+        /* HEADER */
         .top-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 50; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); pointer-events: auto; }
         .logo { font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #fff; }
         .logo span { color: #ff3b30; }
@@ -60,7 +60,7 @@
         .media-info { padding: 12px; }
         .media-title { font-size: 13px; font-weight: 700; height: 34px; overflow: hidden; }
 
-        /* REPRODUCTOR PANTALLA COMPLETA */
+        /* REPRODUCTOR */
         #media-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; background: #000; display: none; }
         #media-screen.active { display: block; z-index: 25; }
         #media-screen iframe, #media-screen video { width: 100%; height: 100%; border: none; }
@@ -79,7 +79,7 @@
 
     <div id="start-overlay" onclick="initApp()">Haz clic para Encender la TV</div>
 
-    <!-- HEADER SIEMPRE VISIBLE POR ENCIMA DE TODO -->
+    <!-- HEADER -->
     <div class="top-bar">
         <div class="logo">MEDIA<span>SL</span></div>
         <div class="top-right">
@@ -185,33 +185,32 @@
         }
 
         function renderDashboardView() {
-            // Destruye el iframe de raíz para detener el audio e imagen inmediatamente
             const screen = document.getElementById('media-screen');
             screen.innerHTML = '';
             screen.classList.remove('active');
             
-            // Oculta el botón superior de salir
+            // Ocultar apps secundarias
+            document.getElementById('youtube-app').classList.remove('active');
+            document.getElementById('twitch-app').classList.remove('active');
+            document.getElementById('ui-hud').classList.add('hidden');
             document.getElementById('exitBtn').style.display = 'none';
 
-            // Muestra el panel principal
+            // Mostrar Dashboard
             document.getElementById('dashboard').classList.remove('hidden');
         }
 
         function renderPlayerView(url) {
             const screen = document.getElementById('media-screen');
             
-            // Oculta interfaces de menú
             document.getElementById('dashboard').classList.add('hidden');
             document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.remove('active');
             document.getElementById('ui-hud').classList.add('hidden');
 
-            // Muestra botón "VOLVER AL MENÚ" fijo en la esquina superior
             document.getElementById('exitBtn').style.display = 'inline-block';
-
             screen.classList.add('active');
 
-            // 1. YouTube (Embed Limpio)
+            // 1. YouTube
             if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
                 const videoId = RegExp.$1;
                 screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
@@ -233,30 +232,40 @@
         }
 
         function showDashboard() {
-            // Fuerza la actualización en Firebase a 'home' para sincronizar con todos los usuarios
             dbRef.set({ currentUrl: 'home' });
         }
 
-        // ================= YOUTUBE APP LOGIC =================
+        // ================= YOUTUBE APP LOGIC (API PIPED MEJORADA) =================
         function openYouTubeApp() {
-            hideAllViews();
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('twitch-app').classList.remove('active');
             document.getElementById('youtube-app').classList.add('active');
             fetchTrendingYouTube();
         }
 
+        const PIPED_APIS = [
+            'https://pipedapi.kavin.rocks',
+            'https://api.piped.private.coffee',
+            'https://pipedapi.mha.fi'
+        ];
+
         function fetchTrendingYouTube() {
             const resultsContainer = document.getElementById('ytResults');
             resultsContainer.innerHTML = '<div style="color:#aaa;">Cargando populares...</div>';
+            tryPipedTrending(0);
+        }
 
-            fetch('https://invidious.nerdvpn.de/api/v1/trending?type=Music')
+        function tryPipedTrending(index) {
+            const resultsContainer = document.getElementById('ytResults');
+            if (index >= PIPED_APIS.length) {
+                resultsContainer.innerHTML = '<div style="color:#888;">No se pudieron cargar las tendencias. Usa la barra para buscar directamente.</div>';
+                return;
+            }
+
+            fetch(`${PIPED_APIS[index]}/trending?region=US`)
                 .then(res => res.json())
-                .then(data => renderYtGrid(data))
-                .catch(() => {
-                    fetch('https://inv.specified.tech/api/v1/trending')
-                        .then(res => res.json())
-                        .then(data => renderYtGrid(data))
-                        .catch(() => resultsContainer.innerHTML = '<div style="color:#888;">Error cargando tendencias. Usa la barra superior.</div>');
-                });
+                .then(data => renderPipedGrid(data))
+                .catch(() => tryPipedTrending(index + 1));
         }
 
         function searchYouTube() {
@@ -265,18 +274,26 @@
 
             const resultsContainer = document.getElementById('ytResults');
             resultsContainer.innerHTML = '<div style="color:#aaa;">Buscando...</div>';
-
-            fetch(`https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(q)}&type=video`)
-                .then(res => res.json())
-                .then(data => renderYtGrid(data))
-                .catch(() => {
-                    fetch(`https://inv.specified.tech/api/v1/search?q=${encodeURIComponent(q)}&type=video`)
-                        .then(res => res.json())
-                        .then(data => renderYtGrid(data));
-                });
+            tryPipedSearch(q, 0);
         }
 
-        function renderYtGrid(videos) {
+        function tryPipedSearch(query, index) {
+            const resultsContainer = document.getElementById('ytResults');
+            if (index >= PIPED_APIS.length) {
+                resultsContainer.innerHTML = '<div style="color:#e50914;">Error de red. Intenta buscar de nuevo.</div>';
+                return;
+            }
+
+            fetch(`${PIPED_APIS[index]}/search?q=${encodeURIComponent(query)}&filter=videos`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.items) renderPipedGrid(data.items);
+                    else tryPipedSearch(query, index + 1);
+                })
+                .catch(() => tryPipedSearch(query, index + 1));
+        }
+
+        function renderPipedGrid(videos) {
             const resultsContainer = document.getElementById('ytResults');
             resultsContainer.innerHTML = '';
 
@@ -286,10 +303,14 @@
             }
 
             videos.slice(0, 16).forEach(video => {
-                const videoId = video.videoId;
-                const title = video.title;
-                const author = video.author || 'YouTube';
-                const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                // Extrae el ID del video limpia y correctamente
+                const urlMatch = video.url ? video.url.match(/v=([^&]+)/) : null;
+                const videoId = urlMatch ? urlMatch[1] : (video.id || '');
+                if (!videoId) return;
+
+                const title = video.title || 'Video de YouTube';
+                const author = video.uploaderName || video.uploader || 'YouTube';
+                const thumb = video.thumbnail || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
                 resultsContainer.innerHTML += `
                     <div class="media-card" onclick="playYtVideo('${videoId}')">
@@ -309,7 +330,8 @@
 
         // ================= TWITCH APP LOGIC =================
         function openTwitchApp() {
-            hideAllViews();
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('youtube-app').classList.remove('active');
             document.getElementById('twitch-app').classList.add('active');
             fallbackTwitchStreams();
         }
@@ -348,12 +370,6 @@
             const url = document.getElementById('urlInput').value.trim();
             if (url) dbRef.set({ currentUrl: url });
             document.getElementById('urlInput').value = '';
-        }
-
-        function hideAllViews() {
-            document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('youtube-app').classList.remove('active');
-            document.getElementById('twitch-app').classList.remove('active');
         }
 
         function toggleHUD() {
