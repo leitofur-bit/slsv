@@ -29,7 +29,7 @@
         .badge { background: #ff9500; color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; }
         .news-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
 
-        /* TARJETAS CON ANIMACION HOVER CSS */
+        /* TARJETAS CON PREVISUALIZACION ANIMADA EN HOVER */
         .app-card { 
             width: 160px; 
             height: 200px; 
@@ -46,7 +46,7 @@
             overflow: hidden; 
         }
 
-        .app-card img { 
+        .app-card img.app-icon { 
             width: 75px; 
             height: 75px; 
             object-fit: contain; 
@@ -55,40 +55,54 @@
             transition: transform 0.3s;
         }
 
-        /* EFECTO DE ANIMACIÓN DE FONDO EN HOVER */
-        .app-card::before {
-            content: '';
+        /* CAPA DE PREVISUALIZACION DE VIDEO/ANIMACION */
+        .preview-bg {
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
             opacity: 0;
-            transform: scale(0.5);
-            transition: opacity 0.4s, transform 0.4s;
             z-index: 1;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: scale(1.1);
+            filter: brightness(0.7) contrast(1.1);
         }
 
+        /* Overlay oscuro para mantener visible el icono principal */
+        .app-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* GIFS / ANIMACIONES TEMATICAS POR TARJETA */
+        .yt-preview { background-image: url('https://media.giphy.com/media/l41K3o5TzDQByEYxy/giphy.gif'); }
+        .twitch-preview { background-image: url('https://media.giphy.com/media/13Hgw8T855C208/giphy.gif'); }
+        .movies-preview { background-image: url('https://media.giphy.com/media/3o7rc0qU6b5hne8pps/giphy.gif'); }
+        .browser-preview { background-image: url('https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif'); }
+
+        /* EFECTO HOVER */
         .app-card:hover { 
             transform: translateY(-12px) scale(1.08); 
             border-color: rgba(255,255,255,0.9); 
             box-shadow: 0 15px 35px rgba(0,0,0,0.8);
         }
 
-        .app-card:hover img {
-            transform: scale(1.2) rotate(-3deg);
+        .app-card:hover img.app-icon {
+            transform: scale(1.15);
         }
 
-        .app-card:hover::before {
+        .app-card:hover .preview-bg {
             opacity: 1;
             transform: scale(1);
-            animation: pulseBg 1.8s infinite alternate;
         }
 
-        @keyframes pulseBg {
-            0% { transform: scale(0.9); opacity: 0.2; }
-            100% { transform: scale(1.2); opacity: 0.6; }
+        .app-card:hover::after {
+            opacity: 1;
         }
 
         .bg-youtube { background: linear-gradient(135deg, #ff0000, #800000); }
@@ -157,20 +171,28 @@
                 <div class="news-title">Bienvenido a MediaSL Smart TV System</div>
             </div>
 
+            <!-- YOUTUBE -->
             <div class="app-card bg-youtube" onclick="openYouTubeApp()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
+                <div class="preview-bg yt-preview"></div>
+                <img class="app-icon" src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube">
             </div>
 
+            <!-- TWITCH -->
             <div class="app-card bg-twitch" onclick="openTwitchApp()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
+                <div class="preview-bg twitch-preview"></div>
+                <img class="app-icon" src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Twitch_Glitch_Logo_Purple.svg" alt="Twitch">
             </div>
 
+            <!-- CINE -->
             <div class="app-card bg-movies" onclick="openMoviesApp()">
-                <img src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
+                <div class="preview-bg movies-preview"></div>
+                <img class="app-icon" src="https://cdn-icons-png.flaticon.com/512/3172/3172520.png" alt="Peliculas">
             </div>
 
+            <!-- BROWSER -->
             <div class="app-card bg-browser" onclick="openBrowserApp()">
-                <img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
+                <div class="preview-bg browser-preview"></div>
+                <img class="app-icon" src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" alt="Browser">
             </div>
         </div>
 
