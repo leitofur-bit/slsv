@@ -132,7 +132,7 @@
         .media-info { padding: 12px; }
         .media-title { font-size: 13px; font-weight: 700; height: 34px; overflow: hidden; }
 
-        /* REPRODUCTOR - AJUSTE PARA MOSTRAR VIDEO COMPLETO SIN RECORTAR */
+        /* REPRODUCTOR - PANTALLA COMPLETA */
         #media-screen { 
             position: absolute; 
             top: 0; 
@@ -147,17 +147,17 @@
         #media-screen.active { display: block; z-index: 25; }
 
         #media-screen iframe { 
-            width: 100%; 
-            height: 100%; 
             border: none; 
-            transform: none; /* Mantiene la totalidad del contenido sin cortar los laterales */
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         #media-screen video { 
             width: 100%; 
             height: 100%; 
             border: none; 
-            object-fit: contain; 
+            object-fit: fill; 
         }
 
         /* HUD OVERLAY */
@@ -309,6 +309,39 @@
             document.getElementById('dashboard').classList.remove('hidden');
         }
 
+        function fitMediaIframe() {
+            const iframe = document.querySelector('#media-screen iframe');
+            if (!iframe) return;
+
+            const screen = document.getElementById('media-screen');
+            const w = screen.clientWidth;
+            const h = screen.clientHeight;
+            if (!w || !h) return;
+
+            const currentRatio = w / h;
+            const targetRatio = 16 / 9;
+
+            if (currentRatio < targetRatio) {
+                // La pantalla es más alta que 16:9
+                const idealH = w / targetRatio;
+                iframe.style.width = '100%';
+                iframe.style.height = idealH + 'px';
+                const scaleY = h / idealH;
+                iframe.style.transformOrigin = 'top left';
+                iframe.style.transform = `scaleY(${scaleY})`;
+            } else {
+                // La pantalla es más ancha que 16:9
+                const idealW = h * targetRatio;
+                iframe.style.height = '100%';
+                iframe.style.width = idealW + 'px';
+                const scaleX = w / idealW;
+                iframe.style.transformOrigin = 'top left';
+                iframe.style.transform = `scaleX(${scaleX})`;
+            }
+        }
+
+        window.addEventListener('resize', fitMediaIframe);
+
         function renderPlayerView(url, timestamp) {
             const screen = document.getElementById('media-screen');
             
@@ -342,6 +375,8 @@
             else {
                 screen.innerHTML = `<iframe src="${url}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
             }
+
+            setTimeout(fitMediaIframe, 50);
         }
 
         function closeAppView() {
