@@ -94,7 +94,7 @@
             transform: scale(1);
         }
 
-        /* URLS DE PREVISUALIZACION SIN BLOQUEOS DE HOTLINKING */
+        /* URLS DE PREVISUALIZACION */
         .yt-preview { 
             background-image: url('https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif'); 
         }
@@ -128,14 +128,34 @@
         .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; padding-bottom: 20px; }
         .media-card { background: rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; cursor: pointer; border: 2px solid transparent; position: relative; }
         .media-card:hover { transform: translateY(-5px); border-color: #fff; }
+        
+        /* AJUSTE PARA LAS THUMBNAILS EN LA REJILLA */
         .media-thumb { width: 100%; height: 125px; object-fit: cover; }
         .media-info { padding: 12px; }
         .media-title { font-size: 13px; font-weight: 700; height: 34px; overflow: hidden; }
 
-        /* REPRODUCTOR */
-        #media-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; background: #000; display: none; }
+        /* REPRODUCTOR - AJUSTES PARA ELIMINAR LINEAS NEGRAS */
+        #media-screen { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 5; 
+            background: #000; 
+            display: none; 
+            overflow: hidden; 
+        }
         #media-screen.active { display: block; z-index: 25; }
-        #media-screen iframe, #media-screen video { width: 100%; height: 100%; border: none; }
+        
+        /* Fuerza a que los IFrames y elementos Video ocupen todo el espacio rellenando la pantalla */
+        #media-screen iframe, 
+        #media-screen video { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            object-fit: cover; 
+        }
 
         /* HUD OVERLAY */
         #ui-hud { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.95), transparent); z-index: 60; display: flex; gap: 10px; align-items: center; }
@@ -306,18 +326,20 @@
 
             if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)) {
                 const videoId = RegExp.$1;
-                screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&start=${startSeconds}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+                // Se agrega style de ajuste y renderizado
+                screen.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&start=${startSeconds}&controls=1&modestbranding=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="width:100%; height:100%; border:none; object-fit:cover;"></iframe>`;
             } 
             else if (url.match(/twitch\.tv\/([^&]+)/)) {
                 const channelName = RegExp.$1;
                 const domain = window.location.hostname || 'localhost';
-                screen.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${domain}&autoplay=true" allowfullscreen></iframe>`;
+                screen.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${domain}&autoplay=true" allowfullscreen style="width:100%; height:100%; border:none; object-fit:cover;"></iframe>`;
             } 
             else if (url.match(/\.(mp4|webm|ogv)$/i)) {
-                screen.innerHTML = `<video src="${url}#t=${startSeconds}" controls autoplay style="background:#000;"></video>`;
+                // object-fit: cover en videos directos asegura eliminar completamente los bordes negros
+                screen.innerHTML = `<video src="${url}#t=${startSeconds}" controls autoplay style="width:100%; height:100%; object-fit:cover; background:#000;"></video>`;
             } 
             else {
-                screen.innerHTML = `<iframe src="${url}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+                screen.innerHTML = `<iframe src="${url}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
             }
         }
 
